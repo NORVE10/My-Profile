@@ -220,7 +220,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
   display: grid; grid-template-columns: repeat(5, 1fr);
   padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
 }
-.tabbar a { display: grid; justify-items: center; gap: 2px; font-size: 0.72rem; color: #b39c97; padding: 4px 0; }
+.tabbar a { display: grid; justify-items: center; gap: 2px; font-size: 0.72rem; color: #8b706b; padding: 4px 0; }
 .tabbar a svg { width: 24px; height: 24px; }
 .tabbar a.is-active { color: var(--coral); font-weight: 600; }
 
@@ -410,7 +410,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
           <div class="news">
             <div>
               <h3>مسابقة العلوم</h3>
-              <p>التسجيل مفتوح حتى ١٥ أكتوبر</p>
+              <p>التسجيل مفتوح حتى ٣٠ نوفمبر</p>
             </div>
             <button class="btn btn--white btn--sm" type="button" data-soon="التسجيل في المسابقة">سجّل</button>
           </div>
@@ -560,6 +560,7 @@ function drawTimer() {
   ring.style.strokeDashoffset = CIRC * (left / FOCUS_SECONDS);
 }
 
+let endAt = 0;
 document.querySelector('[data-timer-toggle]').addEventListener('click', (e) => {
   if (running) {
     clearInterval(running);
@@ -570,15 +571,19 @@ document.querySelector('[data-timer-toggle]').addEventListener('click', (e) => {
   }
   e.currentTarget.textContent = 'إيقاف';
   document.querySelector('[data-timer-label]').textContent = 'نبتتك تكبر 🌱';
+  // نحسب الوقت من الساعة الفعلية عشان المؤقت يبقى دقيق حتى لو الصفحة بالخلفية
+  endAt = Date.now() + left * 1000;
   running = setInterval(() => {
-    left = Math.max(0, left - 1);
+    left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
     drawTimer();
     if (left === 0) {
       clearInterval(running);
       running = null;
+      document.querySelector('[data-timer-toggle]').textContent = 'ابدأ';
+      document.querySelector('[data-timer-label]').textContent = 'خلصت الجلسة 🌳';
       toast('أحسنت! زرعت شجرة جديدة 🌳 +٢٥ نقطة');
     }
-  }, 1000);
+  }, 250);
 });
 
 document.querySelector('[data-timer-reset]').addEventListener('click', () => {
