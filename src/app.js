@@ -34,10 +34,12 @@ const fmtTime = (min) => {
 const fmtDuration = (min) => {
   const h = Math.floor(min / 60), m = min % 60;
   const hs = h === 1 ? 'ساعة' : h === 2 ? 'ساعتين' : h > 2 ? `${ar(h)} ساعات` : '';
+  const ms = m === 1 ? 'دقيقة' : m === 2 ? 'دقيقتين' : m <= 10 ? `${ar(m)} دقائق` : `${ar(m)} دقيقة`;
   if (!m) return hs;
-  return hs ? `${hs} و${ar(m)} دقيقة` : `${ar(m)} دقيقة`;
+  return hs ? `${hs} و${ms}` : ms;
 };
 const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+const hhmm = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 const num = (v) => (v === '' || v == null || isNaN(Number(v)) ? null : clamp(Number(v), 0, 100));
 
 let toastTimer;
@@ -69,13 +71,18 @@ const ICONS = {
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   back: '<path d="m9 6 6 6-6 6"/>',
   spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/>',
+  board: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+  send: '<path d="M20 12 4 4l3 8-3 8z"/><path d="M7 12h13"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  ask: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>',
   lock: '<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.more}</svg>`;
 
 // الخانات — اللي عندها route تفتح صفحتها، والباقي "قريباً"
 const MODULES = [
-  { id: 'ai', title: 'المساعد الذكي', desc: 'يحل أسئلتك ويصحّح إجاباتك خطوة بخطوة', tone: 'coral', badge: 'AI' },
+  { id: 'ai', title: 'المساعد الذكي', desc: 'يحل أسئلتك ويصحّح إجاباتك خطوة بخطوة', tone: 'coral', badge: 'AI', route: true },
   { id: 'schedule', title: 'جدولي', desc: 'جدول مذاكرة مبني على أهدافك', tone: 'maroon', route: true },
   { id: 'level', title: 'مستواي', desc: 'تقدير تلقائي لمستواك في كل مادة', tone: 'pink' },
   { id: 'resources', title: 'المصادر', desc: 'ملفات وروابط ينزّلها معلموك', tone: 'beige', badge: '٤ جديد' },
@@ -85,19 +92,20 @@ const MODULES = [
   { id: 'grades', title: 'الدرجات', desc: 'درجاتك لكل مادة في مكان واحد', tone: 'beige' },
   { id: 'rewards', title: 'المحفزات', desc: 'نقاط وشارات وإنجازات', tone: 'maroon', badge: '٣٢٠ نقطة' },
 ];
-const ROUTES = ['home', 'plan', 'schedule'];
+const ROUTES = ['home', 'plan', 'schedule', 'ai', 'board'];
 const SIDEBAR = [
   { id: 'home', title: 'الرئيسية' },
   { id: 'plan', title: 'خطتي المستقبلية' },
   { id: 'focus', title: 'ركّز' },
+  { id: 'board', title: 'المنافسة' },
   ...MODULES.map(({ id, title }) => ({ id, title })),
 ];
 const TABS = [
   { id: 'home', title: 'الرئيسية' },
   { id: 'plan', title: 'خطتي' },
+  { id: 'ai', title: 'المساعد' },
   { id: 'schedule', title: 'جدولي' },
-  { id: 'focus', title: 'ركّز' },
-  { id: 'more', title: 'المزيد' },
+  { id: 'board', title: 'المنافسة' },
 ];
 const navAttr = (id, title) => (ROUTES.includes(id) ? `data-route="${id}"` : id === 'focus' ? 'data-focus' : `data-soon="${title}"`);
 
@@ -119,23 +127,25 @@ function renderChrome() {
    بيانات الخطة: التخصصات والجامعات
    ========================================================= */
 const MAJORS = {
-  medicine: { label: 'الطب والعلوم الصحية', subjects: ['أحياء', 'كيمياء'], target: { gpa: 97, qud: 85, tah: 88 }, passion: 'تطوع صحي أو قراءة علمية' },
-  engineering: { label: 'الهندسة', subjects: ['رياضيات', 'فيزياء'], target: { gpa: 92, qud: 80, tah: 82 }, passion: 'مشروع هندسي أو روبوتات' },
-  cs: { label: 'علوم الحاسب والبرمجيات', subjects: ['رياضيات', 'حاسب'], target: { gpa: 92, qud: 82, tah: 80 }, passion: 'تعلّم برمجة ومشروع صغير' },
-  ai: { label: 'الذكاء الاصطناعي والبيانات', subjects: ['رياضيات', 'حاسب'], target: { gpa: 93, qud: 83, tah: 80 }, passion: 'دورة ذكاء اصطناعي ومشروع بيانات' },
-  business: { label: 'إدارة الأعمال والمالية', subjects: ['رياضيات', 'إنجليزي'], target: { gpa: 88, qud: 75, tah: 72 }, passion: 'قراءة عن ريادة الأعمال أو مشروع صغير' },
-  law: { label: 'القانون', subjects: ['لغتي', 'إنجليزي'], target: { gpa: 88, qud: 75, tah: 70 }, passion: 'قراءة ومناظرات' },
-  science: { label: 'العلوم (فيزياء، كيمياء، أحياء)', subjects: ['فيزياء', 'كيمياء'], target: { gpa: 88, qud: 75, tah: 78 }, passion: 'تجارب علمية ومسابقات' },
-  languages: { label: 'اللغات والترجمة', subjects: ['إنجليزي', 'لغتي'], target: { gpa: 85, qud: 72, tah: 68 }, passion: 'قراءة وتعلّم لغة جديدة' },
-  design: { label: 'التصميم والعمارة', subjects: ['رياضيات', 'فيزياء'], target: { gpa: 88, qud: 75, tah: 72 }, passion: 'رسم وتصميم ومعرض أعمال' },
-  education: { label: 'التعليم', subjects: ['لغتي', 'إنجليزي'], target: { gpa: 85, qud: 70, tah: 68 }, passion: 'تطوع في تدريس زملائك' },
-  other: { label: 'تخصص ثاني', subjects: ['رياضيات', 'إنجليزي'], target: { gpa: 85, qud: 72, tah: 70 }, passion: 'شي تحبه ويقرّبك من هدفك' },
+  medicine: { label: 'الطب والعلوم الصحية', subjects: ['أحياء', 'كيمياء'], target: { gpa: 97, qud: 85, tah: 88 }, passion: 'قراءة علمية: مقال طبي واحد ولخّصه بنقاط' },
+  engineering: { label: 'الهندسة', subjects: ['رياضيات', 'فيزياء'], target: { gpa: 92, qud: 80, tah: 82 }, passion: 'مشروع هندسي: خطوة وحدة في مشروع روبوت أو تصميم' },
+  cs: { label: 'علوم الحاسب والبرمجيات', subjects: ['رياضيات', 'حاسب'], target: { gpa: 92, qud: 82, tah: 80 }, passion: 'برمجة: درسين بايثون وتمرين واحد' },
+  ai: { label: 'الذكاء الاصطناعي والبيانات', subjects: ['رياضيات', 'حاسب'], target: { gpa: 93, qud: 83, tah: 80 }, passion: 'ذكاء اصطناعي: درس من دورة وتمرين بيانات صغير' },
+  business: { label: 'إدارة الأعمال والمالية', subjects: ['رياضيات', 'إنجليزي'], target: { gpa: 88, qud: 75, tah: 72 }, passion: 'ريادة أعمال: فصل من كتاب أو فكرة مشروع' },
+  law: { label: 'القانون', subjects: ['لغتي', 'إنجليزي'], target: { gpa: 88, qud: 75, tah: 70 }, passion: 'قراءة: ٢٠ صفحة وتدرّب على مناظرة' },
+  science: { label: 'العلوم (فيزياء، كيمياء، أحياء)', subjects: ['فيزياء', 'كيمياء'], target: { gpa: 88, qud: 75, tah: 78 }, passion: 'علوم: تجربة بسيطة أو أسئلة أولمبياد' },
+  languages: { label: 'اللغات والترجمة', subjects: ['إنجليزي', 'لغتي'], target: { gpa: 85, qud: 72, tah: 68 }, passion: 'لغات: ٢٠ كلمة جديدة وقراءة قصة قصيرة' },
+  design: { label: 'التصميم والعمارة', subjects: ['رياضيات', 'فيزياء'], target: { gpa: 88, qud: 75, tah: 72 }, passion: 'تصميم: اسكتش وحد لملف أعمالك' },
+  education: { label: 'التعليم', subjects: ['لغتي', 'إنجليزي'], target: { gpa: 85, qud: 70, tah: 68 }, passion: 'تعليم: اشرح درس لزميل أو سجّله فيديو' },
+  other: { label: 'تخصص ثاني', subjects: ['رياضيات', 'إنجليزي'], target: { gpa: 85, qud: 72, tah: 70 }, passion: 'هدفك: خطوة صغيرة تقربك من حلمك' },
 };
-const UNIVERSITIES = [
-  'جامعة الملك سعود', 'جامعة الملك عبدالعزيز', 'جامعة الملك فهد للبترول والمعادن', 'جامعة الإمام عبدالرحمن بن فيصل',
-  'جامعة الأميرة نورة بنت عبدالرحمن', 'جامعة أم القرى', 'جامعة القصيم', 'جامعة الملك خالد', 'جامعة طيبة',
-  'جامعة الإمام محمد بن سعود الإسلامية', 'جامعة الملك سعود بن عبدالعزيز للعلوم الصحية', 'ما قررت للحين',
-];
+// جامعات السعودية + أشهر جامعات العالم (والطالب يقدر يكتب أي جامعة ثانية)
+const UNIVERSITIES_SA = ["جامعة الملك سعود", "جامعة الملك عبدالعزيز", "جامعة الملك فهد للبترول والمعادن", "جامعة الملك عبدالله للعلوم والتقنية (كاوست)", "جامعة الإمام عبدالرحمن بن فيصل", "جامعة الأميرة نورة بنت عبدالرحمن", "جامعة أم القرى", "جامعة القصيم", "جامعة الملك خالد", "جامعة طيبة", "جامعة الإمام محمد بن سعود الإسلامية", "جامعة الملك سعود بن عبدالعزيز للعلوم الصحية", "جامعة الملك فيصل", "جامعة الفيصل", "جامعة الأمير سلطان", "جامعة الأمير سطام بن عبدالعزيز", "جامعة جدة", "جامعة الطائف", "جامعة جازان", "جامعة تبوك", "جامعة حائل", "جامعة نجران", "جامعة الجوف", "جامعة الحدود الشمالية", "جامعة المجمعة", "جامعة شقراء", "جامعة الباحة", "جامعة بيشة", "جامعة حفر الباطن", "الجامعة الإسلامية بالمدينة المنورة", "الجامعة السعودية الإلكترونية", "جامعة عفت", "جامعة دار الحكمة", "جامعة اليمامة"];
+const UNIVERSITIES_WORLD = ["Massachusetts Institute of Technology (MIT)", "Stanford University", "Harvard University", "University of Cambridge", "University of Oxford", "Imperial College London", "ETH Zurich", "University College London (UCL)", "California Institute of Technology (Caltech)", "University of Chicago", "Princeton University", "Yale University", "Columbia University", "University of Pennsylvania", "Cornell University", "Johns Hopkins University", "University of California, Berkeley", "University of California, Los Angeles (UCLA)", "University of Michigan", "New York University (NYU)", "Carnegie Mellon University", "Duke University", "Northwestern University", "Brown University", "Dartmouth College", "Rice University", "Vanderbilt University", "Washington University in St. Louis", "Georgia Institute of Technology", "University of Texas at Austin", "University of Washington", "University of Illinois Urbana-Champaign", "University of Wisconsin-Madison", "University of California, San Diego", "University of California, Davis", "University of California, Irvine", "University of California, Santa Barbara", "University of Southern California", "Boston University", "Purdue University", "Pennsylvania State University", "Ohio State University", "University of Minnesota", "University of North Carolina at Chapel Hill", "University of Virginia", "University of Florida", "University of Maryland", "Emory University", "Georgetown University", "Texas A&M University", "Arizona State University", "University of Rochester", "Case Western Reserve University", "Rensselaer Polytechnic Institute", "Northeastern University", "Tufts University", "University of Pittsburgh", "Michigan State University", "Virginia Tech", "University of Colorado Boulder", "Colorado School of Mines", "Rutgers University", "University of Toronto", "McGill University", "University of British Columbia", "University of Waterloo", "University of Alberta", "McMaster University", "Université de Montréal", "Queen's University", "Western University", "King's College London", "London School of Economics (LSE)", "University of Edinburgh", "University of Manchester", "University of Bristol", "University of Warwick", "University of Glasgow", "Durham University", "University of Birmingham", "University of Leeds", "University of Sheffield", "University of Nottingham", "University of Southampton", "Queen Mary University of London", "Lancaster University", "University of York", "University of St Andrews", "University of Exeter", "Newcastle University", "Cardiff University", "University of Bath", "Loughborough University", "EPFL", "University of Zurich", "Technical University of Munich (TUM)", "LMU Munich", "Heidelberg University", "Humboldt University of Berlin", "Free University of Berlin", "Technical University of Berlin", "RWTH Aachen University", "Karlsruhe Institute of Technology (KIT)", "University of Freiburg", "University of Tübingen", "University of Göttingen", "University of Bonn", "University of Hamburg", "Sorbonne University", "PSL University", "Institut Polytechnique de Paris", "Université Paris-Saclay", "Sciences Po", "KU Leuven", "Ghent University", "University of Amsterdam", "Delft University of Technology", "Leiden University", "Utrecht University", "Erasmus University Rotterdam", "Eindhoven University of Technology", "Wageningen University", "University of Groningen", "University of Copenhagen", "Technical University of Denmark (DTU)", "Aarhus University", "Lund University", "KTH Royal Institute of Technology", "Karolinska Institutet", "Uppsala University", "Stockholm University", "Chalmers University of Technology", "University of Oslo", "University of Helsinki", "Aalto University", "Trinity College Dublin", "University College Dublin", "University of Vienna", "TU Wien", "Politecnico di Milano", "University of Bologna", "Sapienza University of Rome", "University of Padua", "University of Barcelona", "Autonomous University of Madrid", "Complutense University of Madrid", "University of Lisbon", "University of Porto", "Charles University", "University of Warsaw", "Khalifa University", "United Arab Emirates University", "American University of Sharjah", "New York University Abu Dhabi", "Mohamed bin Zayed University of Artificial Intelligence (MBZUAI)", "American University of Beirut", "Qatar University", "Hamad Bin Khalifa University", "Sultan Qaboos University", "Kuwait University", "University of Bahrain", "University of Jordan", "Cairo University", "American University in Cairo", "Middle East Technical University", "Boğaziçi University", "Koç University", "Sabancı University", "University of Tokyo", "Kyoto University", "Osaka University", "Tohoku University", "Institute of Science Tokyo", "Tsinghua University", "Peking University", "Fudan University", "Shanghai Jiao Tong University", "Zhejiang University", "University of Science and Technology of China", "Nanjing University", "National University of Singapore (NUS)", "Nanyang Technological University (NTU)", "University of Hong Kong", "Hong Kong University of Science and Technology", "Chinese University of Hong Kong", "City University of Hong Kong", "Hong Kong Polytechnic University", "Seoul National University", "KAIST", "Yonsei University", "Korea University", "POSTECH", "Sungkyunkwan University", "National Taiwan University", "IIT Bombay", "IIT Delhi", "IIT Madras", "Indian Institute of Science", "University of Malaya", "Universiti Teknologi Malaysia", "Chulalongkorn University", "University of Melbourne", "University of Sydney", "UNSW Sydney", "Australian National University", "Monash University", "University of Queensland", "University of Western Australia", "University of Adelaide", "University of Technology Sydney", "University of Auckland", "University of Buenos Aires", "University of São Paulo", "National Autonomous University of Mexico (UNAM)", "Pontifical Catholic University of Chile", "Tecnológico de Monterrey", "University of Cape Town", "University of the Witwatersrand"];
+const UNIVERSITIES = [...UNIVERSITIES_SA, ...UNIVERSITIES_WORLD, 'ما قررت للحين'];
+// مصادر المذاكرة — الطالب يختار، أو يكتب مصدره
+const QUD_SOURCES = ['المفكر', 'المعاصر', 'نون أكاديمي', 'عين', 'يوتيوب', 'أخرى'];
+const SCHOOL_SOURCES = ['كتاب المدرسة', 'عين', 'مدرستي', 'نون أكاديمي', 'يوتيوب', 'أخرى'];
 const SUBJECTS = ['رياضيات', 'فيزياء', 'كيمياء', 'أحياء', 'إنجليزي', 'لغتي', 'حاسب', 'علوم الأرض'];
 const PROGRAMS = ['موهبة', 'مسك', 'أكاديمية طويق', 'دورات أونلاين', 'أولمبياد ومسابقات', 'تطوع', 'نادي مدرسي', 'ما عندي للحين'];
 const SERIOUS = ['أستكشف', 'مهتم شوي', 'مهتم', 'مهتم جداً', 'متأكد ١٠٠٪'];
@@ -230,33 +240,78 @@ function localPlan(a) {
   };
 }
 
+// المصادر اللي اختارها الطالب
+const sourceOf = (a, kind) => {
+  const v = a[kind + 'Source'];
+  if (v === 'أخرى') return (a[kind + 'SourceOther'] || '').trim() || 'مصدرك';
+  return v || (kind === 'school' ? 'كتاب المدرسة' : 'مصدرك');
+};
+
+// واجبات المدرسة (نفس مهام «اليوم» في الرئيسية) — لاحقاً تجي من المعلم
+const SCHOOL_TASKS = [
+  { title: 'رياضيات: حل تمارين الوحدة ٣ وسلّمها', note: 'التسليم الليلة ١١:٥٩ م', when: 'today' },
+  { title: 'فيزياء: ذاكر لاختبار الثلاثاء القصير وحل ١٥ سؤال', note: 'الاختبار الثلاثاء • الحصة الثالثة', when: 1 },
+  { title: 'كيمياء: اكتب تقرير المختبر (المقدمة والنتائج)', note: 'التسليم الخميس', when: 3 },
+];
+
 function localWeek(a, focus, major) {
   const start = toMin(a.startTime || '16:00');
-  const exam = a.grade === 3 ? 'تحصيلي' : 'قدرات';
-  let rot = 0;
+  const qud = sourceOf(a, 'qud');
+  const tah = sourceOf(a, 'tah');
+  const school = sourceOf(a, 'school');
+  const programs = a.programs.filter((p) => p !== 'ما عندي للحين');
+  const today = new Date().getDay();
+  let rot = 0, part = 0;
   const next = () => focus[rot++ % focus.length];
+  const qudTask = (min) => {
+    const lessons = Math.max(2, Math.round(min / 7));
+    const kind = part++ % 2 === 0 ? 'كمي' : 'لفظي';
+    return { title: `قدرات: خلّص ${ar(lessons)} دروس ${kind} في ${qud}`, note: 'وقف بعد كل درسين وحل تمارينها', minutes: min, type: 'exam' };
+  };
+  const tahTask = (min) => {
+    const subj = major.subjects[part++ % major.subjects.length];
+    return { title: `تحصيلي: حل ${ar(Math.round(min / 2))} سؤال ${subj} من ${tah}`, note: 'علّم الأسئلة اللي غلطت فيها وارجع لها', minutes: min, type: 'exam' };
+  };
+  const studyTask = (min, weakFirst) => {
+    const subj = next();
+    const weak = a.weak.includes(subj);
+    return {
+      title: weak || weakFirst ? `تأسيس ${subj}: ذاكر درس وحل ${ar(Math.round(min / 5))} أسئلة من ${school}` : `${subj}: حضّر الدرس الجاي وحل ${ar(Math.round(min / 5))} أسئلة من ${school}`,
+      minutes: min, type: 'study',
+    };
+  };
+  const passionTask = (min, k) => programs[k % (programs.length || 1)] && programs.length
+    ? { title: `${programs[k % programs.length]}: كمّل مهام هالأسبوع`, minutes: min, type: 'passion' }
+    : { title: major.passion, minutes: min, type: 'passion' };
+  const homework = (d) => {
+    const due = SCHOOL_TASKS.filter((x) => (x.when === 'today' ? today : x.when) === d);
+    if (due.length) return due.map((t) => ({ title: t.title, note: t.note, minutes: 45, type: 'homework' }));
+    return [{ title: `واجبات المدرسة: حل أسئلة درس اليوم في ${next()} من ${school}`, minutes: 45, type: 'homework' }];
+  };
+  const exam = (min) => (a.grade === 3 && part % 3 === 2 ? tahTask(min) : qudTask(min));
+
   const week = [];
   for (let d = 0; d < 7; d++) {
     const weekend = d === 5 || d === 6;
     const budget = Math.round((weekend ? a.hoursWeekend : a.hoursWeekday) * 60);
     let items;
     if (d === 5) items = [
-      { title: major.passion, minutes: 60, type: 'passion' },
-      { title: `مراجعة خفيفة: ${next()}`, minutes: 40, type: 'review' },
-      { title: `تدريب ${exam}`, minutes: 40, type: 'exam' },
+      passionTask(60, 0),
+      { title: 'مراجعة خفيفة: اقرأ ملخصاتك وحل ١٠ أسئلة', minutes: 40, type: 'review' },
+      exam(40),
     ];
     else if (d === 6) items = [
-      { title: 'مراجعة الأسبوع', minutes: 60, type: 'review' },
-      { title: `اختبار ${exam} تجريبي`, minutes: 50, type: 'exam' },
-      { title: next(), minutes: 45, type: 'study' },
-      { title: major.passion, minutes: 45, type: 'passion' },
+      { title: 'مراجعة الأسبوع: حل ١٠ أسئلة من كل مادة درستها', minutes: 60, type: 'review' },
+      { title: a.grade === 3 ? `اختبار تحصيلي تجريبي في ${tah}` : `اختبار قدرات تجريبي في ${qud}`, note: 'بعده راجع كل سؤال غلطت فيه', minutes: 50, type: 'exam' },
+      studyTask(45, true),
+      passionTask(45, 1),
     ];
     else items = [
-      { title: 'واجبات اليوم', minutes: 50, type: 'homework' },
-      { title: next(), minutes: 45, type: 'study' },
-      ...(a.grade >= 2 && d % 2 === 0 ? [{ title: `تدريب ${a.grade === 3 && d === 2 ? 'تحصيلي' : 'قدرات'}`, minutes: 30, type: 'exam' }] : []),
-      { title: next(), minutes: 40, type: 'study' },
-      { title: 'مراجعة سريعة لدروس اليوم', minutes: 25, type: 'review' },
+      ...homework(d),
+      studyTask(45),
+      ...(a.grade >= 2 && d % 2 === 0 ? [exam(35)] : []),
+      studyTask(40),
+      { title: 'مراجعة: لخّص دروس اليوم في ورقة وحدة', minutes: 20, type: 'review' },
     ];
     let t = d === 5 ? Math.max(start, toMin('16:30')) : start; // الجمعة بعد العصر
     let used = 0;
@@ -303,6 +358,10 @@ function aiPrompt(a, base) {
     'التحصيلي الحالي': a.tahNow ?? 'ما اختبر', 'التحصيلي المطلوب': a.tahTarget,
     'مواد يحتاج يقويها': a.weak.join('، ') || 'ما حدد',
     'برامج وتدريبات': [...a.programs, a.programsNote].filter(Boolean).join('، ') || 'لا يوجد',
+    'يذاكر القدرات من': sourceOf(a, 'qud'),
+    'يذاكر التحصيلي من': sourceOf(a, 'tah'),
+    'يذاكر مواد المدرسة من': sourceOf(a, 'school'),
+    'واجبات واختبارات المدرسة هالأسبوع': SCHOOL_TASKS.map((t) => `${t.title} (${t.note})`).join(' | '),
     'ساعات المذاكرة بأيام الدراسة': a.hoursWeekday,
     'ساعات المذاكرة بالإجازة (الجمعة والسبت)': a.hoursWeekend,
     'يبدأ المذاكرة الساعة': a.startTime,
@@ -318,16 +377,19 @@ ${Object.entries(facts).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 - الأسبوع يبدأ الأحد (day=0) وينتهي السبت (day=6). الجمعة والسبت إجازة.
 - لا تتجاوز ساعات المذاكرة اليومية المذكورة، وخل بين الجلسات راحة ١٥ دقيقة، والجلسة بين ٢٥ و٦٠ دقيقة.
 - اربط الجدول بأهدافه: المواد الضعيفة، مواد التخصص، القدرات/التحصيلي حسب صفه، ووقت لبرامجه أو شغفه.
+- كل جلسة لازم تكون مهمة محددة فيها رقم ومصدر، مثل: «قدرات: خلّص ٦ دروس كمي في المفكر» أو «فيزياء: حل ١٥ سؤال من الفصل الثالث من كتاب المدرسة». ممنوع عناوين عامة مثل «واجبات اليوم» أو «مذاكرة».
+- استخدم المصادر اللي اختارها الطالب بالاسم، وحط واجبات المدرسة في الأيام المناسبة قبل موعدها.
+- title قصير (أقل من ٧٠ حرف)، وnote اختياري لتوضيح أو نصيحة للجلسة (أقل من ١٢٠ حرف).
 - أضف آخر كل يوم جلسة نوعها free بعنوان «وقت حر».
 - المراحل من اليوم لين ${isoDate(timeline(a.grade).end)} ومتتالية بدون فجوات.
 - كن صريح لو الأهداف صعبة مقارنة بمستواه الحالي، واقترح بديل.
 
 رد بـ JSON فقط بهذا الشكل بالضبط:
-{"summary":"فقرة قصيرة","phases":[{"title":"","from":"YYYY-MM-DD","to":"YYYY-MM-DD","goals":["","",""]}],"milestones":[{"title":"","date":"YYYY-MM-DD"}],"week":[{"day":0,"blocks":[{"start":"16:00","minutes":45,"title":"","type":"homework|study|exam|passion|review|free"}]}],"tips":["",""]}
+{"summary":"فقرة قصيرة","phases":[{"title":"","from":"YYYY-MM-DD","to":"YYYY-MM-DD","goals":["","",""]}],"milestones":[{"title":"","date":"YYYY-MM-DD"}],"week":[{"day":0,"blocks":[{"start":"16:00","minutes":45,"title":"","note":"","type":"homework|study|exam|passion|review|free"}]}],"tips":["",""]}
 - phases: من ٣ إلى ٥ مراحل. milestones: من ٣ إلى ٦. week: ٧ أيام. tips: من ٢ إلى ٤.
 
 مثال على جدول مبدئي محسوب (حسّنه ولا تنسخه حرفياً):
-${JSON.stringify(base.week.slice(0, 2).map((d) => ({ day: d.day, blocks: d.blocks.map((b) => ({ start: b.start, minutes: b.minutes, title: b.title, type: b.type })) })))}`;
+${JSON.stringify(base.week.slice(0, 2).map((d) => ({ day: d.day, blocks: d.blocks.map((b) => ({ start: hhmm(b.start), minutes: b.minutes, title: b.title, type: b.type })) })))}`;
 }
 
 const TYPES = ['homework', 'study', 'exam', 'passion', 'review', 'free'];
@@ -352,20 +414,27 @@ function mergeAi(ai, base) {
     const tp = ai.tips.map((t) => str(t, 220)).filter(Boolean).slice(0, 5);
     if (tp.length) plan.tips = tp;
   }
-  if (Array.isArray(ai.week)) {
-    const week = [];
-    for (let d = 0; d < 7; d++) {
-      const day = ai.week.find((w) => w && Number(w.day) === d);
-      const blocks = (day && Array.isArray(day.blocks) ? day.blocks : [])
-        .filter((b) => b && str(b.title) && /^\d{1,2}:\d{2}$/.test(String(b.start)))
-        .map((b) => ({ start: toMin(b.start), minutes: clamp(Math.round(Number(b.minutes) || 30), 10, 180), title: str(b.title, 60), type: TYPES.includes(b.type) ? b.type : 'study' }))
-        .sort((x, y) => x.start - y.start)
-        .slice(0, 10);
-      week.push({ day: d, blocks: blocks.length ? blocks : base.week[d].blocks });
-    }
-    plan.week = week;
-  }
+  if (Array.isArray(ai.week)) plan.week = parseWeek(ai.week, base.week);
   return plan;
+}
+
+// جدول من الذكاء الاصطناعي: نقبل الجلسات السليمة بس، واليوم الفاضي ياخذ الجدول القديم
+function parseWeek(aiWeek, fallback) {
+  const week = [];
+  for (let d = 0; d < 7; d++) {
+    const day = Array.isArray(aiWeek) ? aiWeek.find((w) => w && Number(w.day) === d) : null;
+    const blocks = (day && Array.isArray(day.blocks) ? day.blocks : [])
+      .filter((b) => b && str(b.title) && /^\d{1,2}:\d{2}$/.test(String(b.start)))
+      .map((b) => {
+        const out = { start: toMin(b.start), minutes: clamp(Math.round(Number(b.minutes) || 30), 10, 180), title: str(b.title, 80), type: TYPES.includes(b.type) ? b.type : 'study' };
+        if (str(b.note)) out.note = str(b.note, 140);
+        return out;
+      })
+      .sort((x, y) => x.start - y.start)
+      .slice(0, 10);
+    week.push({ day: d, blocks: blocks.length ? blocks : fallback[d].blocks });
+  }
+  return week;
 }
 
 /* =========================================================
@@ -387,6 +456,7 @@ const emptyAnswers = () => ({
   major: '', majorOther: '', university: '',
   gpaNow: null, gpaTarget: null, qudNow: null, qudTarget: null, tahNow: null, tahTarget: null,
   weak: [], programs: [], programsNote: '',
+  qudSource: '', qudSourceOther: '', tahSource: '', tahSourceOther: '', schoolSource: 'كتاب المدرسة', schoolSourceOther: '',
   hoursWeekday: 2.5, hoursWeekend: 4, startTime: '16:00',
 });
 
@@ -396,6 +466,8 @@ const emptyAnswers = () => ({
 const HERO = {
   plan: ['خطتي المستقبلية', 'من اليوم لين توصل هدفك'],
   schedule: ['جدولي', 'نظّم وقتك بنفسك'],
+  ai: ['المساعد الذكي', 'يحل ويصحّح ويشرح لك'],
+  board: ['المنافسة', 'مين أكثر واحد ركّز هالأسبوع؟'],
 };
 
 function renderHero(route) {
@@ -429,6 +501,8 @@ function show() {
   if (route === 'home') renderHomePlan();
   if (route === 'plan') renderPlanView();
   if (route === 'schedule') renderSchedule();
+  if (route === 'ai') renderAi();
+  if (route === 'board') renderBoardView();
   window.scrollTo({ top: 0 });
 }
 
@@ -490,7 +564,7 @@ const STEPS = [
   { title: 'حلمك وشغفك', hint: 'وش تبي تصير؟ وليش؟' },
   { title: 'التخصص والجامعة', hint: 'وين تبي توصل' },
   { title: 'النسب', hint: 'وين أنت الحين ووين تبي توصل' },
-  { title: 'البرامج والتدريبات', hint: 'وش اللي قاعد تسويه برا المدرسة' },
+  { title: 'المصادر والبرامج', hint: 'من وين تذاكر، ووش تسوي برا المدرسة' },
   { title: 'وقتك الفاضي', hint: 'كم تقدر تذاكر' },
 ];
 
@@ -522,7 +596,8 @@ function stepBody(i, a) {
     <div class="field"><span>التخصص اللي تبيه <b>*</b></span>${chipGroup('major', Object.entries(MAJORS).map(([value, m]) => ({ value, label: m.label })), a.major, false)}</div>
     ${a.major === 'other' ? `<label class="field"><span>اكتب التخصص</span><input type="text" data-field="majorOther" value="${esc(a.majorOther)}" maxlength="50" /></label>` : ''}
     <label class="field"><span>الجامعة اللي تحلم فيها</span>
-      <input type="text" list="unis" data-field="university" value="${esc(a.university)}" placeholder="اختر أو اكتب اسم الجامعة" maxlength="60" />
+      <input type="text" list="unis" data-field="university" value="${esc(a.university)}" placeholder="اكتب أي جامعة في العالم" maxlength="80" />
+      <small class="field__hint">فيها جامعات السعودية وأشهر جامعات العالم، وتقدر تكتب أي جامعة ثانية</small>
       <datalist id="unis">${UNIVERSITIES.map((u) => `<option value="${u}"></option>`).join('')}</datalist>
     </label>`;
   if (i === 2) return `
@@ -532,9 +607,16 @@ function stepBody(i, a) {
     ${pctField('التحصيلي', 'tah', a, 'ما اختبرت')}
     <div class="weighted" data-weighted></div>
     <div class="field"><span>مواد تحس إنك تحتاج تقويها (اختياري)</span>${chipGroup('weak', SUBJECTS, a.weak, true)}</div>`;
-  if (i === 3) return `
+  if (i === 3) {
+    const other = (kind) => a[kind + 'Source'] === 'أخرى'
+      ? `<input type="text" data-field="${kind}SourceOther" value="${esc(a[kind + 'SourceOther'])}" placeholder="اكتب اسم المصدر أو المعلم" maxlength="40" />` : '';
+    return `
+    <div class="field"><span>تذاكر القدرات من وين؟</span>${chipGroup('qudSource', QUD_SOURCES, a.qudSource, false)}${other('qud')}</div>
+    ${a.grade >= 2 ? `<div class="field"><span>والتحصيلي؟</span>${chipGroup('tahSource', QUD_SOURCES, a.tahSource, false)}${other('tah')}</div>` : ''}
+    <div class="field"><span>ومواد المدرسة؟</span>${chipGroup('schoolSource', SCHOOL_SOURCES, a.schoolSource, false)}${other('school')}</div>
     <div class="field"><span>عندك برامج أو تدريبات؟</span>${chipGroup('programs', PROGRAMS, a.programs, true)}</div>
     <label class="field"><span>تفاصيل (اختياري)</span><textarea data-field="programsNote" rows="2" maxlength="200" placeholder="مثلاً: دورة بايثون على منصة سطر، ومشارك في أولمبياد الرياضيات">${esc(a.programsNote)}</textarea></label>`;
+  }
   return `
     <label class="field range"><span>أيام الدراسة (الأحد للخميس): <b data-out="hoursWeekday">${ar(a.hoursWeekday)} ساعة</b></span>
       <input type="range" min="1" max="6" step="0.5" data-field="hoursWeekday" value="${a.hoursWeekday}" /></label>
@@ -803,14 +885,23 @@ function renderSchedule() {
             <span class="slot__time">${fmtTime(b.start)}</span>
             ${b.type === 'free'
               ? `<div class="slot__card slot--free"><span>${esc(b.title)}</span></div>`
-              : `<button type="button" class="slot__card slot--${b.type}${done ? ' is-done' : ''}" aria-pressed="${done}" data-slot="${i}">
-                  <span><strong>${esc(b.title)}</strong><small>${fmtDuration(b.minutes)}</small></span>
-                  <span class="slot__check">${icon('check')}</span>
-                </button>`}
+              : `<div class="slot__card slot--${b.type}${done ? ' is-done' : ''}">
+                  <button type="button" class="slot__main" aria-pressed="${done}" data-slot="${i}">
+                    <span class="slot__check">${icon('check')}</span>
+                    <span><strong>${esc(b.title)}</strong>${b.note ? `<em>${esc(b.note)}</em>` : ''}<small>${fmtDuration(b.minutes)}</small></span>
+                  </button>
+                  <button type="button" class="slot__ask" aria-label="اسأل المساعد عن هذي الجلسة" data-ask-slot="${i}">${icon('ai')}</button>
+                </div>`}
           </li>`;
         }).join('')}
       </ul>
-      <p class="hint">اضغط على الجلسة لما تخلصها ✓</p>
+      <p class="hint">اضغط على الجلسة لما تخلصها ✓ • واضغط ${icon('ai')} عشان المساعد يساعدك فيها</p>
+    </section>
+
+    <section class="card ai-edit">
+      <div class="block__head"><h2>${icon('spark')} عدّل جدولك بالذكاء الاصطناعي</h2></div>
+      <textarea id="sched-req" class="input" data-sched-req rows="2" maxlength="300" placeholder="مثلاً: عندي اختبار فيزياء الثلاثاء، أو ما أقدر أذاكر الخميس">${esc(state.schedReq || '')}</textarea>
+      <button type="button" class="btn btn--coral" data-sched-ai ${state.schedBusy ? 'disabled' : ''}>${state.schedBusy ? 'يعدّل جدولك…' : 'عدّل جدولي'}</button>
     </section>
 
     <section class="private">
@@ -825,16 +916,276 @@ function renderSchedule() {
 }
 
 /* =========================================================
-   المنافسة (فصلي / مدرستي — منفصلة)
+   المنافسة: لوحة ترتيب (فصلي / مدرستي — منفصلة)
    ========================================================= */
-const BOARDS = {
-  class: [[1, 'سارة', '٧ س ٢٠ د'], [2, 'أنت', '٦ س ٤٥ د', true], [3, 'فيصل', '٥ س ١٠ د'], [4, 'نورة', '٤ س ٣٠ د']],
-  school: [[1, 'ريم • ٣/٢', '١١ س ٥ د'], [2, 'خالد • ٢/١', '٩ س ٤٠ د'], [3, 'سارة • ٢/٣', '٧ س ٢٠ د'], [12, 'أنت • ٢/٣', '٦ س ٤٥ د', true]],
-};
+const BOYS = ['فيصل', 'خالد', 'عبدالرحمن', 'محمد', 'سعود', 'تركي', 'نواف', 'عمر', 'يوسف', 'بدر', 'ماجد', 'راكان', 'سلطان', 'عبدالعزيز',
+  'حمد', 'مشاري', 'زياد', 'فهد', 'ناصر', 'سلمان', 'إبراهيم', 'مازن', 'ريان', 'أحمد', 'علي', 'حسن', 'وليد', 'طلال', 'هشام', 'عادل',
+  'مهند', 'ياسر', 'أنس', 'بندر', 'عمار', 'سامي', 'نايف', 'مساعد', 'لؤي', 'غازي', 'معاذ', 'صالح'];
+const fmtHM = (min) => `${ar(Math.floor(min / 60))} س ${ar(min % 60)} د`;
+let boardKind = 'class';
+
+// بيانات تجريبية ثابتة للطلاب، وأنت تطلع بالترتيب حسب دقائق تركيزك الفعلية
+function boardRows(kind) {
+  let x = kind === 'class' ? 11 : 29;
+  const rnd = () => (x = (x * 9301 + 49297) % 233280) / 233280;
+  const count = kind === 'class' ? 23 : 39;
+  const offset = kind === 'class' ? 0 : 5;
+  let mins = kind === 'class' ? 540 : 820;
+  const rows = [];
+  for (let k = 0; k < count; k++) {
+    mins -= Math.round(6 + rnd() * (kind === 'class' ? 28 : 22));
+    rows.push({
+      name: BOYS[(k + offset) % BOYS.length],
+      cls: kind === 'school' ? `${ar(1 + Math.floor(rnd() * 3))}/${ar(1 + Math.floor(rnd() * 4))}` : '',
+      minutes: Math.max(20, mins),
+      streak: 1 + Math.floor(rnd() * 12),
+    });
+  }
+  const meMinutes = 405 + (store.get('focusMinutes') || 0);
+  rows.push({ name: state.answers?.name?.trim() || 'أنت', cls: kind === 'school' ? `${ar(state.answers?.grade || 2)}/${ar(3)}` : '', minutes: meMinutes, streak: 5, me: true });
+  rows.sort((a, b) => b.minutes - a.minutes);
+  rows.forEach((r, k) => { r.rank = k + 1; r.trees = Math.floor(r.minutes / 25); });
+  return rows;
+}
+
+const boardRow = (r) => `
+  <li class="${r.me ? 'me' : ''}">
+    <span class="rank">${ar(r.rank)}</span>
+    <span class="avatar">${esc(r.name[0])}</span>
+    <span class="name">${esc(r.name)}${r.me ? ' <small>(أنت)</small>' : ''}${r.cls ? `<small>${r.cls}</small>` : ''}</span>
+    <span class="trees" title="أشجار">🌳 ${ar(r.trees)}</span>
+    <span class="pts">${fmtHM(r.minutes)}</span>
+  </li>`;
+
+// المعاينة في الرئيسية: أول ٣ + مكانك
 function renderBoard(kind) {
-  $$('[data-board]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.board === kind)));
-  $('[data-leaders]').innerHTML = BOARDS[kind].map(([rank, name, pts, me]) => `
-    <li class="${me ? 'me' : ''}"><span class="rank">${ar(rank)}</span><span class="avatar">${name[0]}</span><span class="name">${name}</span><span class="pts">${pts}</span></li>`).join('');
+  boardKind = kind;
+  $$('[data-board]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.board === boardKind)));
+  const rows = boardRows(boardKind);
+  const me = rows.find((r) => r.me);
+  const show = rows.slice(0, 3);
+  if (me.rank > 3) show.push(me);
+  const el = $('[data-leaders]');
+  if (el) el.innerHTML = show.map(boardRow).join('');
+  if ($('[data-view="board"]') && !$('[data-view="board"]').hidden) renderBoardView();
+}
+
+function renderBoardView() {
+  const rows = boardRows(boardKind);
+  const me = rows.find((r) => r.me);
+  const ahead = rows[me.rank - 2];
+  const [first, second, third] = rows;
+  const podium = (r, place) => `
+    <div class="podium__col podium--${place}${r.me ? ' is-me' : ''}">
+      <span class="podium__avatar">${esc(r.name[0])}${place === 1 ? '<i>👑</i>' : ''}</span>
+      <strong>${esc(r.name)}</strong>
+      <small>${fmtHM(r.minutes)}</small>
+      <div class="podium__step">${ar(place)}</div>
+    </div>`;
+  $('[data-view="board"]').innerHTML = `
+    <section class="board-head">
+      <div class="seg seg--lg" role="tablist" aria-label="نوع المنافسة">
+        <button type="button" role="tab" aria-selected="${boardKind === 'class'}" data-board="class">فصلي</button>
+        <button type="button" role="tab" aria-selected="${boardKind === 'school'}" data-board="school">مدرستي</button>
+      </div>
+      <p>الترتيب حسب دقائق التركيز في «ركّز» هالأسبوع. كل ٢٥ دقيقة = شجرة 🌳</p>
+    </section>
+
+    <section class="podium" aria-label="المراكز الأولى">
+      ${podium(second, 2)}${podium(first, 1)}${podium(third, 3)}
+    </section>
+
+    <section class="me-card">
+      <div><small>ترتيبك ${boardKind === 'class' ? 'في الفصل' : 'في المدرسة'}</small><strong>#${ar(me.rank)} من ${ar(rows.length)}</strong></div>
+      <p>${ahead ? `باقي لك <b>${fmtDuration(ahead.minutes - me.minutes + 1)}</b> وتتجاوز ${esc(ahead.name)} 💪` : 'أنت الأول! حافظ على مركزك 👑'}</p>
+      <button type="button" class="btn btn--white btn--sm" data-focus>ابدأ جلسة</button>
+    </section>
+
+    <section class="block">
+      <div class="block__head"><h2>الترتيب كامل</h2><span class="count">${ar(rows.length)} طالب</span></div>
+      <ol class="leaders leaders--full">${rows.slice(3).map(boardRow).join('')}</ol>
+    </section>`;
+}
+
+/* =========================================================
+   المساعد الذكي (يحل ويصحّح ويشرح، ويعرف خطتك وجدولك)
+   ========================================================= */
+const chat = { turns: (store.get('chat') || []).slice(-30), busy: false, ctl: null, image: null, sample: undefined, canImages: false };
+samplePromise.then(async (smp) => {
+  chat.sample = smp;
+  if (smp) { try { chat.canImages = !!(await smp.limits()).images; } catch { chat.canImages = false; } }
+  if (currentRoute() === 'ai') renderAi();
+});
+
+function studentContext() {
+  const a = state.answers;
+  if (!a) return 'الطالب ما عبّى خطته المستقبلية للحين (اقترح عليه يعبيها من «خطتي»).';
+  const major = MAJORS[a.major] || MAJORS.other;
+  const d = new Date().getDay();
+  const today = state.plan ? state.plan.week[d].blocks.filter((b) => b.type !== 'free').map((b) => `${hhmm(b.start)} ${b.title}`).join('، ') : '';
+  return [
+    `الاسم: ${a.name || 'غير معروف'}`, `الصف: ${GRADES[a.grade - 1]}`, `الحلم: ${a.dream}`,
+    `التخصص: ${a.major === 'other' && a.majorOther ? a.majorOther : major.label}`, `الجامعة: ${a.university || 'ما قرر'}`,
+    `النسب الحالية/المطلوبة: ثانوية ${a.gpaNow ?? '؟'}/${a.gpaTarget}، قدرات ${a.qudNow ?? '؟'}/${a.qudTarget}، تحصيلي ${a.tahNow ?? '؟'}/${a.tahTarget}`,
+    `مواد يحتاج يقويها: ${a.weak.join('، ') || 'ما حدد'}`,
+    `يذاكر القدرات من ${sourceOf(a, 'qud')}، ومواد المدرسة من ${sourceOf(a, 'school')}`,
+    `واجبات المدرسة: ${SCHOOL_TASKS.map((t) => `${t.title} (${t.note})`).join(' | ')}`,
+    `اليوم ${DAYS[d]}، وجدوله اليوم: ${today || 'ما فيه'}`,
+  ].join('\n');
+}
+
+const aiRules = () => `أنت «وشيجة»، مساعد دراسي ذكي لطلاب الثانوي في السعودية (المنهج السعودي، والقدرات والتحصيلي). تكلّم بعربي بسيط وقريب وودود.
+- لو طلب حل سؤال: اشرح الحل بخطوات مرقمة قصيرة، وبعدها اكتب «**الجواب النهائي:**».
+- لو أعطاك إجابته عشان تصححها: ابدأ بالحكم (✅ صح / ⚠️ صح جزئياً / ❌ خطأ)، وقل وين الخطأ بالضبط وكيف يصححه، وبعدها الإجابة النموذجية.
+- لو طلب تلميح: أعطه تلميح بس بدون الحل.
+- لو طلب شرح درس: اشرح بأمثلة بسيطة، وآخر شي اعطه سؤال واحد يتدرب عليه.
+- لو سأل عن جدوله أو خطته أو وش يذاكر: استخدم بياناته تحت، وخلك محدد (أرقام ومصادر).
+- خل الرد قصير وواضح بسطور قصيرة. استخدم **للعريض** و- للقوائم. لا تستخدم جداول ولا LaTeX؛ اكتب المعادلات عادي مثل x² + 3x = 10.
+- لو مو متأكد من معلومة قل إنك مو متأكد.
+
+بيانات الطالب:
+${studentContext()}`;
+
+const aiErrorText = (code) => ({
+  not_granted: 'ما سمحت لوشيجة تستخدم الذكاء الاصطناعي. افتح الصفحة من جديد واضغط «سماح».',
+  rate_limited: 'وصلت الحد المسموح حالياً، جرّب بعد شوي.',
+  unavailable: 'الذكاء الاصطناعي مو متاح الحين، جرّب بعد شوي.',
+}[code] || 'صار خطأ، جرّب مرة ثانية.');
+
+const fmtAi = (t) => esc(t)
+  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  .replace(/^\s*[-•]\s+(.*)$/gm, '<span class="li">$1</span>')
+  .replace(/\n/g, '<br>');
+
+const QUICK = [
+  { label: 'حل سؤال', fill: 'حل هذا السؤال خطوة بخطوة:\n' },
+  { label: 'صحّح إجابتي', fill: 'صحّح إجابتي.\nالسؤال: \nإجابتي: ' },
+  { label: 'تلميح بس', fill: 'أبغى تلميح بدون الحل:\n' },
+  { label: 'اشرح لي درس', fill: 'اشرح لي درس ' },
+  { label: 'وش أذاكر اليوم؟', send: 'وش أذاكر اليوم؟ رتّب لي جلسات اليوم وقل لي من وين أبدأ.' },
+];
+
+function bubble(t) {
+  if (t.role === 'user') return `<div class="msg msg--me">${t.image ? `<span class="msg__img">${icon('image')} صورة</span>` : ''}${fmtAi(t.content)}</div>`;
+  return `<div class="msg msg--ai${t.error ? ' is-error' : ''}">${t.pending ? '<span class="typing"><i></i><i></i><i></i></span>' : fmtAi(t.content)}</div>`;
+}
+
+function renderAi() {
+  const view = $('[data-view="ai"]');
+  const name = state.answers?.name?.trim();
+  const off = chat.sample === null;
+  const draft = $('[data-chat-input]')?.value ?? chat.draft ?? '';
+  view.innerHTML = `
+    <section class="ai">
+      ${off ? `<div class="note note--warn">${icon('spark')} المساعد الذكي يشتغل لما تفتح وشيجة من رابط Claude. هنا تقدر تشوف شكله بس.</div>` : ''}
+      <div class="chat" data-chat aria-live="polite">
+        <div class="msg msg--ai">هلا${name ? ` ${esc(name)}` : ''}! أنا وشيجة 👋<br>أقدر أحل لك أي سؤال خطوة بخطوة، أصحح إجابتك، أشرح لك درس، أو أقولك وش تذاكر اليوم.${chat.canImages ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
+        ${chat.turns.map(bubble).join('')}
+      </div>
+      <div class="quick" role="group" aria-label="اختصارات">
+        ${QUICK.map((q, k) => `<button type="button" class="chip-opt" data-quick="${k}">${q.label}</button>`).join('')}
+        ${chat.turns.length ? '<button type="button" class="chip-opt chip-opt--ghost" data-chat-clear>محادثة جديدة</button>' : ''}
+      </div>
+      <form class="composer" data-composer>
+        ${chat.image ? `<div class="composer__img"><img src="${URL.createObjectURL(chat.image)}" alt="الصورة المرفقة" /><button type="button" data-img-remove aria-label="شيل الصورة">×</button></div>` : ''}
+        <div class="composer__row">
+          ${chat.canImages ? `<label class="icon-btn icon-btn--soft" aria-label="أرفق صورة السؤال">${icon('image')}<input type="file" accept="image/*" data-img-input hidden /></label>` : ''}
+          <textarea id="chat-input" data-chat-input rows="1" placeholder="اكتب سؤالك أو إجابتك…" ${off ? 'disabled' : ''}>${esc(draft)}</textarea>
+          ${chat.busy
+            ? `<button type="button" class="icon-btn icon-btn--coral" data-chat-stop aria-label="وقّف">${icon('stop')}</button>`
+            : `<button type="submit" class="icon-btn icon-btn--coral" aria-label="أرسل" ${off ? 'disabled' : ''}>${icon('send')}</button>`}
+        </div>
+      </form>
+    </section>`;
+  chat.draft = '';
+  const c = $('[data-chat]');
+  c.scrollTop = c.scrollHeight;
+  if (chat.turns.length) window.scrollTo({ top: document.body.scrollHeight });
+}
+
+function updateLastBubble() {
+  const msgs = $$('[data-chat] .msg');
+  const last = msgs[msgs.length - 1];
+  const t = chat.turns[chat.turns.length - 1];
+  if (last && t) { last.outerHTML = bubble(t); window.scrollTo({ top: document.body.scrollHeight }); }
+}
+
+async function sendChat(text) {
+  text = (text || '').trim();
+  if ((!text && !chat.image) || chat.busy) return;
+  if (chat.sample === undefined) chat.sample = await samplePromise;
+  if (!chat.sample) { toast('المساعد يشتغل لما تفتح وشيجة من رابط Claude'); return; }
+  const img = chat.image;
+  chat.image = null;
+  chat.turns.push({ role: 'user', content: text || 'حل السؤال اللي في الصورة خطوة بخطوة', image: !!img });
+  const reply = { role: 'assistant', content: '', pending: true };
+  chat.turns.push(reply);
+  chat.busy = true;
+  chat.ctl = new AbortController();
+  if (currentRoute() === 'ai') { $('[data-chat-input]') && ($('[data-chat-input]').value = ''); renderAi(); }
+
+  let history = chat.turns.slice(0, -1).filter((t) => !t.error && t.content).slice(-12)
+    .map((t) => ({ role: t.role, content: t.image ? `[أرفقت صورة]\n${t.content}` : t.content }));
+  while (history.length && history[0].role !== 'user') history.shift();
+  const input = [{ role: 'user', content: aiRules() }, { role: 'assistant', content: 'تمام، جاهز أساعدك.' }, ...history];
+  const opts = { cache: false, signal: chat.ctl.signal, onText: ({ text: tx }) => { reply.content = tx; reply.pending = false; if (currentRoute() === 'ai') updateLastBubble(); } };
+  if (img) opts.images = [img];
+  try {
+    const res = await chat.sample(input, opts);
+    reply.content = res.text;
+    if (res.truncated) reply.content += '\n\n(انقطع الرد لأنه طويل — اطلب الباقي)';
+  } catch (e) {
+    if (e && e.code === 'cancelled') reply.content = e.text || reply.content || 'وقّفت الرد.';
+    else { reply.content = (e && e.text) || aiErrorText(e && e.code); reply.error = !(e && e.text); }
+  }
+  reply.pending = false;
+  chat.busy = false;
+  chat.ctl = null;
+  store.set('chat', chat.turns.filter((t) => !t.pending && !t.error).slice(-30));
+  if (currentRoute() === 'ai') renderAi();
+}
+
+function askAbout(text) {
+  go('ai');
+  setTimeout(() => sendChat(text), 50);
+}
+
+// تعديل الجدول بطلب من الطالب
+async function editScheduleAi() {
+  const req = (state.schedReq || '').trim();
+  if (req.length < 3) { toast('اكتب وش تبي تغيّر في جدولك'); return; }
+  const sample = await samplePromise;
+  if (!sample) { toast('تعديل الجدول بالذكاء الاصطناعي يشتغل لما تفتح وشيجة من رابط Claude'); return; }
+  state.schedBusy = true; renderSchedule();
+  const week = state.plan.week.map((d) => ({ day: d.day, blocks: d.blocks.map((b) => ({ start: hhmm(b.start), minutes: b.minutes, title: b.title, note: b.note || '', type: b.type })) }));
+  const prompt = `أنت مرشد أكاديمي في منصة «وشيجة». عدّل جدول المذاكرة الأسبوعي لهذا الطالب حسب طلبه، وخل باقي الجدول مثل ما هو قدر الإمكان.
+
+بيانات الطالب:
+${studentContext()}
+ساعات المذاكرة: ${state.answers.hoursWeekday} ساعة بأيام الدراسة و${state.answers.hoursWeekend} بالإجازة.
+
+طلب الطالب: «${req}»
+
+الجدول الحالي (day=0 الأحد ... day=6 السبت):
+${JSON.stringify(week)}
+
+القواعد: كل جلسة مهمة محددة فيها رقم ومصدر (مثل «قدرات: خلّص ٦ دروس كمي في المفكر»)، راحة ١٥ دقيقة بين الجلسات، وآخر كل يوم جلسة free بعنوان «وقت حر».
+رد بـ JSON فقط: {"message":"جملة قصيرة للطالب عن وش غيرت","week":[{"day":0,"blocks":[{"start":"16:00","minutes":45,"title":"","note":"","type":"homework|study|exam|passion|review|free"}]}]}`;
+  try {
+    const ai = await sample.json(prompt, { modelTier: 'default' });
+    state.plan.week = parseWeek(ai && ai.week, state.plan.week);
+    store.set('plan', state.plan);
+    // نمسح علامات الإنجاز لهالأسبوع لأن الجلسات تغيرت
+    const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay());
+    for (let d = 0; d < 7; d++) { const x = new Date(ws); x.setDate(ws.getDate() + d); const k = isoDate(x) + '|'; Object.keys(state.done).forEach((key) => key.startsWith(k) && delete state.done[key]); }
+    store.set('done', state.done);
+    state.schedReq = '';
+    toast(str(ai && ai.message, 120) || 'عدّلت جدولك ✦');
+  } catch (e) {
+    toast(e && e.code === 'invalid_json' ? 'ما قدرت أقرأ الرد، جرّب تكتب طلبك بشكل ثاني' : aiErrorText(e && e.code));
+  }
+  state.schedBusy = false;
+  if (currentRoute() === 'schedule') renderSchedule();
 }
 
 /* =========================================================
@@ -870,7 +1221,9 @@ function toggleTimer() {
       clearInterval(running); running = null;
       btn.textContent = 'ابدأ';
       $('[data-timer-label]').textContent = 'خلصت الجلسة 🌳';
-      toast('أحسنت! زرعت شجرة جديدة 🌳 +٢٥ نقطة');
+      store.set('focusMinutes', (store.get('focusMinutes') || 0) + 25);
+      renderBoard(boardKind);
+      toast('أحسنت! زرعت شجرة جديدة 🌳 وزاد ترتيبك بالمنافسة');
     }
   }, 250);
 }
@@ -906,7 +1259,7 @@ document.addEventListener('click', (e) => {
   // المعالج
   if (t.closest('[data-start-wizard]')) { state.step = 0; state.draft = emptyAnswers(); state.editing = true; renderWizard(); return; }
   if (t.closest('[data-edit-plan]')) { state.step = 0; state.draft = { ...state.answers, weak: [...state.answers.weak], programs: [...state.answers.programs], _lastMajor: state.answers.major }; state.editing = true; renderWizard(); window.scrollTo({ top: 0 }); return; }
-  const chip = t.closest('.chip-opt');
+  const chip = t.closest('[data-chips] .chip-opt');
   if (chip) {
     const group = chip.closest('[data-chips]');
     const name = group.dataset.chips;
@@ -932,6 +1285,7 @@ document.addEventListener('click', (e) => {
       renderWizard();
       return;
     }
+    if (/Source$/.test(name)) { renderWizard(); return; }
     $$('.chip-opt', group).forEach((c) => {
       const on = multi ? state.draft[name].includes(c.dataset.value) : String(state.draft[name]) === c.dataset.value;
       c.classList.toggle('is-on', on);
@@ -955,6 +1309,26 @@ document.addEventListener('click', (e) => {
   }
   if (t.closest('[data-skip-ai]')) { state.generating?.abort(); return; }
 
+  // المساعد
+  const quick = t.closest('[data-quick]');
+  if (quick) {
+    const q = QUICK[Number(quick.dataset.quick)];
+    if (q.send) { sendChat(q.send); return; }
+    const box = $('[data-chat-input]');
+    if (box && !box.disabled) { box.value = q.fill; box.focus(); box.setSelectionRange(box.value.length, box.value.length); autoGrow(box); }
+    return;
+  }
+  if (t.closest('[data-chat-clear]')) { chat.turns = []; store.set('chat', []); renderAi(); return; }
+  if (t.closest('[data-chat-stop]')) { chat.ctl?.abort(); return; }
+  if (t.closest('[data-img-remove]')) { chat.image = null; renderAi(); return; }
+  const askSlot = t.closest('[data-ask-slot]');
+  if (askSlot) {
+    const b = state.plan.week[state.scheduleDay].blocks[Number(askSlot.dataset.askSlot)];
+    askAbout(`ساعدني أخلص هذي الجلسة: «${b.title}»${b.note ? ` (${b.note})` : ''} ومدتها ${fmtDuration(b.minutes)}. قسّمها لي خطوات صغيرة بالدقايق، واعطني أول سؤال أبدأ فيه.`);
+    return;
+  }
+  if (t.closest('[data-sched-ai]')) { editScheduleAi(); return; }
+
   // الجدول
   const day = t.closest('[data-day]');
   if (day) { state.scheduleDay = Number(day.dataset.day); renderSchedule(); return; }
@@ -975,6 +1349,37 @@ document.addEventListener('input', (e) => {
   if (/Now$|Target$/.test(k)) { state.draft[k] = num(f.value); updateWeighted(); }
   else if (f.type === 'range') { state.draft[k] = Number(f.value); const o = $(`[data-out="${k}"]`); if (o) o.textContent = `${ar(f.value)} ساعة`; }
   else state.draft[k] = f.value;
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.matches('[data-sched-req]')) state.schedReq = e.target.value;
+  if (e.target.matches('[data-chat-input]')) autoGrow(e.target);
+});
+function autoGrow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 180) + 'px'; }
+
+document.addEventListener('submit', (e) => {
+  if (e.target.matches('[data-composer]')) {
+    e.preventDefault();
+    sendChat($('[data-chat-input]').value);
+  }
+  if (e.target.matches('[data-home-ask]')) {
+    e.preventDefault();
+    const box = $('#home-ask');
+    const q = box.value.trim();
+    if (!q) { go('ai'); return; }
+    box.value = '';
+    askAbout(q);
+  }
+});
+
+document.addEventListener('change', (e) => {
+  if (!e.target.matches('[data-img-input]')) return;
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  if (!f.type.startsWith('image/')) { toast('أرفق صورة بس'); return; }
+  chat.draft = $('[data-chat-input]')?.value || '';
+  chat.image = f;
+  renderAi();
 });
 
 window.addEventListener('hashchange', show);

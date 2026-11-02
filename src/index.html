@@ -48,6 +48,12 @@
       <div class="content view" data-view="home">
         <section class="plan-card" aria-labelledby="plan-title" data-home-plan></section>
 
+        <form class="ask" data-home-ask aria-label="اسأل المساعد الذكي">
+          <span class="ask__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/></svg></span>
+          <input type="text" id="home-ask" placeholder="اسأل وشيجة… مثلاً: حل 2x + 6 = 14" maxlength="500" autocomplete="off" />
+          <button type="submit" class="btn btn--coral btn--sm">اسأل</button>
+        </form>
+
         <section class="block" aria-labelledby="today-title">
           <div class="block__head">
             <h2 id="today-title">اليوم</h2>
@@ -113,6 +119,7 @@
               </div>
             </div>
             <ol class="leaders" data-leaders></ol>
+            <a class="link link--block" href="#board" data-route="board">شوف الترتيب كامل ←</a>
           </section>
         </div>
 
@@ -147,6 +154,12 @@
 
       <!-- ================= جدولي ================= -->
       <div class="content view" data-view="schedule" hidden></div>
+
+      <!-- ================= المساعد الذكي ================= -->
+      <div class="content view" data-view="ai" hidden></div>
+
+      <!-- ================= المنافسة ================= -->
+      <div class="content view" data-view="board" hidden></div>
     </main>
 
     <nav class="tabbar" aria-label="التنقل" data-tabbar></nav>
