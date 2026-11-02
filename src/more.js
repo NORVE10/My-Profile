@@ -119,25 +119,25 @@ function seed() {
     { id: uid(), kind: 'إعلان', title: 'اختبارات منتصف الفصل', body: 'تبدأ الأسبوع الجاي، الجدول في المصادر.', deadline: '', at: isoDate(addDays(-1)) },
     { id: uid(), kind: 'خبر', title: 'تكريم المتميزين', body: 'نبارك لطلاب ٢/ب حصولهم على المركز الأول في المنافسة الشهرية.', deadline: '', at: isoDate(addDays(-3)) },
   ]);
-  db.set('prizes', ['قسيمة مكتبة ١٠٠ ريال', 'شهادة تميّز من المدير', 'خروج مبكر يوم الخميس']);
+  db.set('prizes', DEFAULT_PRIZES);
   db.set('levels', { رياضيات: 'ممتاز', فيزياء: 'يحتاج دعم', كيمياء: 'جيد جداً', أحياء: 'جيد جداً', إنجليزي: 'جيد', لغتي: 'ممتاز' });
   db.set('grades', { رياضيات: [18, 19, 17], فيزياء: [12, 14, 11], كيمياء: [16, 17, 15], أحياء: [17, 16, 18], إنجليزي: [14, 15, 13], لغتي: [19, 20, 19] });
   db.set('posts', [
     { id: uid(), group: 'class', author: 'فيصل', role: `طالب ${myClass()}`, kind: 'ملخص', text: 'ملخص الفصل الثالث فيزياء بخط واضح، إن شاء الله يفيدكم قبل الاختبار 🙏', link: '', likes: 7, liked: false, comments: [{ who: 'خالد', text: 'جزاك الله خير!' }], at: Date.now() - 36e5 },
     { id: uid(), group: 'grade', author: 'عبدالرحمن', role: 'طالب ٢/أ', kind: 'سؤال', text: 'أحد يعرف كيف نحل x² - 5x + 6 = 0 بالتحليل؟', link: '', likes: 3, liked: false, comments: [{ who: 'سعود', text: '(x-2)(x-3) = 0 يعني x = 2 أو x = 3' }], at: Date.now() - 2 * 36e5 },
-    { id: uid(), group: 'school', author: 'أ. فهد القحطاني', role: 'معلم الفيزياء', kind: 'فيديو', text: 'فيديو قصير يشرح الحركة الدائرية بطريقة سهلة.', link: 'https://www.youtube.com/results?search_query=الحركة+الدائرية', likes: 15, liked: false, comments: [], at: Date.now() - 5 * 36e5 },
+    { id: uid(), group: 'school', author: 'أ. سعد الزهراني', role: 'المرشد الطلابي (مشرف)', kind: 'فيديو', text: 'فيديو قصير يشرح الحركة الدائرية بطريقة سهلة.', link: 'https://www.youtube.com/results?search_query=الحركة+الدائرية', likes: 15, liked: false, comments: [], at: Date.now() - 5 * 36e5 },
     { id: uid(), group: 'class', author: 'تركي', role: `طالب ${myClass()}`, kind: 'ملف', text: 'نماذج قدرات كمي حليتها مع الحل، ٢٠ سؤال.', link: '', likes: 9, liked: false, comments: [], at: Date.now() - 26 * 36e5 },
   ]);
   db.set('threads', [
-    { id: 'g-class', group: true, name: `قروب ${myClassName()}`, role: 'طلاب الفصل بس', msgs: [
+    { id: 'g-class', owner: 'student', group: true, name: `قروب ${myClassName()}`, role: 'طلاب الفصل والمشرف بس', msgs: [
       { from: 'فيصل', text: 'شباب لا تنسون واجب الرياضيات الليلة', at: Date.now() - 3 * 36e5 },
       { from: 'نواف', text: 'أحد خلص تقرير الكيمياء؟', at: Date.now() - 2 * 36e5 },
       { from: 'عمر', text: 'باقي لي النتائج بس 👍', at: Date.now() - 1.5 * 36e5 },
     ] },
-    { id: 'dm-t2', with: 't2', name: 'أ. فهد القحطاني', role: 'معلم الفيزياء', msgs: [
+    { id: 'dm-t2', owner: 'student', with: 't2', name: 'أ. فهد القحطاني', role: 'معلم الفيزياء', msgs: [
       { from: 'أ. فهد القحطاني', text: 'أهلاً، أي سؤال عن الاختبار القصير أنا موجود.', at: Date.now() - 20 * 36e5 },
     ] },
-    { id: 'dm-a3', with: 'a3', name: 'أ. سعد الزهراني', role: 'المرشد الطلابي', msgs: [
+    { id: 'dm-a3', owner: 'student', with: 'a3', name: 'أ. سعد الزهراني', role: 'المرشد الطلابي', msgs: [
       { from: 'أ. سعد الزهراني', text: 'مرحبا، لو تحتاج مساعدة في اختيار التخصص كلمني.', at: Date.now() - 48 * 36e5 },
     ] },
   ]);
@@ -146,6 +146,26 @@ function seed() {
     { id: uid(), to: 't1', text: 'الملخصات اللي تنزلها مرة مفيدة، شكراً أستاذ.', anon: false, from: 'نواف', at: isoDate(addDays(-5)) },
   ]);
   db.set('seeded', 2);
+}
+
+const DEFAULT_PRIZES = ['قسيمة شرائية بقيمة ٢٠٠ ريال', 'قسيمة مكتبة بقيمة ١٠٠ ريال', 'شهادة تميّز من مدير المدرسة'];
+// جوائز تخالف تعليمات وزارة التعليم (غياب، خروج، إعفاء، درجات…)
+const BAD_PRIZE = /خروج|غياب|إعفاء|اعفاء|استئذان|درج(ة|ات) (إضافية|اضافية|زيادة)|بدون (واجب|اختبار)|تأخير|إجازة|اجازة/;
+
+// تحديث البيانات القديمة المحفوظة في المتصفح
+function migrate() {
+  const prizes = db.get('prizes', null);
+  if (prizes && prizes.some((x) => BAD_PRIZE.test(x))) db.set('prizes', DEFAULT_PRIZES);
+  const posts = db.get('posts', null);
+  if (posts && posts.some((x) => x.author === 'أ. فهد القحطاني')) {
+    posts.forEach((x) => { if (x.author === 'أ. فهد القحطاني') { x.author = 'أ. سعد الزهراني'; x.role = 'المرشد الطلابي (مشرف)'; } });
+    db.set('posts', posts);
+  }
+  const threads = db.get('threads', null);
+  if (threads && threads.some((t) => !t.owner)) {
+    threads.forEach((t) => { t.owner = t.owner || 'student'; if (t.group) t.role = 'طلاب الفصل والمشرف بس'; });
+    db.set('threads', threads);
+  }
 }
 
 function getSchoolTasks() {
@@ -262,6 +282,28 @@ function coursesCard(a) {
     </section>`;
 }
 
+// أقرب موعد مهم (اختبار القدرات/التحصيلي لو حدده الطالب، وإلا التخرج) — يتحسب من تاريخ اليوم
+function nextGoal(a) {
+  const list = [];
+  for (const k of ['qud', 'tah']) if (a[k + 'Exam'] && a[k + 'Exam'] >= todayISO()) list.push({ date: a[k + 'Exam'], label: k === 'qud' ? 'اختبار القدرات' : 'اختبار التحصيلي' });
+  list.push({ date: isoDate(timeline(a.grade).end), label: 'التخرج' });
+  list.sort((x, y) => x.date.localeCompare(y.date));
+  return { ...list[0], days: Math.max(0, daysBetween(todayISO(), list[0].date)) };
+}
+
+/* =========================================================
+   الوضع الداكن
+   ========================================================= */
+const isDark = () => document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+const themeBtn = (cls = 'btn btn--ghost') => `<button type="button" class="${cls} theme-btn" data-theme-toggle>${icon(isDark() ? 'sun' : 'moon')} ${isDark() ? 'الوضع الفاتح' : 'الوضع الداكن'}</button>`;
+function toggleTheme() {
+  const next = isDark() ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  db.set('theme', next);
+  renderChrome();
+  show();
+}
+
 /* =========================================================
    التنقل حسب الدور
    ========================================================= */
@@ -273,7 +315,7 @@ const NAV = {
   },
   teacher: {
     tabs: [['home', 'الرئيسية', 'home'], ['t-tasks', 'الواجبات', 'grades'], ['t-resources', 'المصادر', 'resources'], ['t-students', 'طلابي', 'level'], ['ai', 'المساعد', 'ai']],
-    side: [['home', 'الرئيسية', 'home'], ['t-tasks', 'الواجبات والاختبارات', 'grades'], ['t-resources', 'المصادر', 'resources'], ['t-students', 'مستوى طلابي', 'level'], ['t-feedback', 'اقتراحات الطلاب', 'feedback'], ['messages', 'الرسائل', 'messages'], ['community', 'المجتمع', 'community'], ['ai', 'المساعد الذكي', 'ai']],
+    side: [['home', 'الرئيسية', 'home'], ['t-tasks', 'الواجبات والاختبارات', 'grades'], ['t-resources', 'المصادر', 'resources'], ['t-students', 'مستوى طلابي', 'level'], ['t-feedback', 'اقتراحات الطلاب', 'feedback'], ['messages', 'الرسائل', 'messages'], ['ai', 'المساعد الذكي', 'ai']],
   },
   parent: {
     tabs: [['home', 'الرئيسية', 'home'], ['p-child', 'مستوى ولدي', 'level'], ['messages', 'الرسائل', 'messages'], ['ai', 'المساعد', 'ai']],
@@ -281,7 +323,7 @@ const NAV = {
   },
   admin: {
     tabs: [['home', 'الرئيسية', 'home'], ['a-news', 'الأخبار', 'messages'], ['a-prizes', 'الجوائز', 'rewards'], ['a-reports', 'التقارير', 'level'], ['ai', 'المساعد', 'ai']],
-    side: [['home', 'الرئيسية', 'home'], ['a-news', 'الأخبار والمسابقات', 'messages'], ['a-prizes', 'جوائز المنافسة', 'rewards'], ['a-reports', 'تقارير المدرسة', 'level'], ['messages', 'الرسائل', 'messages'], ['ai', 'المساعد الذكي', 'ai']],
+    side: [['home', 'الرئيسية', 'home'], ['a-news', 'الأخبار والمسابقات', 'messages'], ['a-prizes', 'جوائز المنافسة', 'rewards'], ['a-reports', 'تقارير المدرسة', 'level'], ['community', 'قروبات الطلاب (إشراف)', 'community'], ['messages', 'الرسائل', 'messages'], ['ai', 'المساعد الذكي', 'ai']],
   },
 };
 const navLink = ([id, title, ic]) => `<a href="#${id}" data-nav-id="${id}" ${id === 'focus' ? 'data-focus' : `data-route="${id}"`}>${icon(ic)}<span>${title}</span></a>`;
@@ -298,6 +340,7 @@ function renderChrome() {
       <small>${m.desc}</small>
     </a>`).join('');
   $('[data-nav]').innerHTML = NAV[r].side.map(navLink).join('') +
+    `<button type="button" class="sidebar__switch" data-theme-toggle>${icon(isDark() ? 'sun' : 'moon')}<span>${isDark() ? 'الوضع الفاتح' : 'الوضع الداكن'}</span></button>` +
     `<button type="button" class="sidebar__switch" data-switch>${icon('back')}<span>تبديل الحساب</span></button>`;
   $('[data-tabbar]').innerHTML = NAV[r].tabs.map(navLink).join('');
   $('[data-tabbar]').style.gridTemplateColumns = `repeat(${NAV[r].tabs.length}, 1fr)`;
@@ -365,7 +408,8 @@ function renderWelcome() {
       <p>منصة مدرسية واحدة تجمع كل شيء لطلاب الثانوي. ${r ? '' : 'اختر كيف تبي تدخل:'}</p>
       ${!r ? `<div class="roles">${Object.entries(ROLES).map(([k, v]) => `
         <button type="button" class="role" data-pick-role="${k}">${icon(v.icon)}<strong>${v.label}</strong><small>${v.desc}</small></button>`).join('')}</div>
-        <p class="welcome__note">${icon('lock')} نسخة تجريبية: بدون بريد ولا كلمة مرور</p>` : `
+        <p class="welcome__note">${icon('lock')} نسخة تجريبية: بدون بريد ولا كلمة مرور</p>
+        ${themeBtn('btn btn--ghost btn--sm')}` : `
       <form class="welcome__form" data-welcome-form>
         <span class="chip chip--soft">${ROLES[r].label}</span>
         <label class="field"><span>${r === 'parent' ? 'اسمك' : 'اسمك'}</span><input type="text" id="w-name" class="input" maxlength="30" required placeholder="${r === 'teacher' ? 'مثلاً: أ. سامي' : r === 'admin' ? 'مثلاً: أ. عبدالعزيز' : 'مثلاً: عبدالله'}" /></label>
@@ -414,8 +458,9 @@ function enter(e) {
    ========================================================= */
 function todayItems() {
   const items = [];
+  const sub = db.get('submitted', []);
   for (const t of getSchoolTasks().filter((x) => x.due >= todayISO()).slice(0, 4)) {
-    items.push({ title: t.title, sub: t.note, tag: t.kind, tone: t.kind === 'اختبار' ? 'maroon' : 'coral' });
+    items.push({ id: t.id, hw: t.kind === 'واجب', done: sub.includes(t.id), title: t.title, sub: t.note, tag: t.kind, tone: t.kind === 'اختبار' ? 'maroon' : 'coral' });
   }
   for (const x of db.get('exams', []).filter((x) => x.date >= todayISO() && daysBetween(todayISO(), x.date) <= 14)) {
     items.push({ title: `اختبار ${x.subject}`, sub: `${relDay(x.date)}${x.note ? ` • ${x.note}` : ''}`, tag: 'اختبار', tone: 'maroon' });
@@ -429,7 +474,7 @@ function renderStudentHome() {
   renderHomePlan();
   const items = todayItems();
   $('[data-today]').innerHTML = items.length ? items.map((t) => `
-    <li class="task task--${t.tone}"><div><strong>${esc(t.title)}</strong><small>${esc(t.sub)}</small></div><span class="tag tag--${t.tone}">${esc(t.tag)}</span></li>`).join('')
+    <li class="task task--${t.tone}"><div><strong>${esc(t.title)}</strong><small>${esc(t.sub)}</small>${t.hw ? `<button type="button" class="submit-btn${t.done ? ' is-done' : ''}" data-submit="${t.id}">${t.done ? '✓ سلّمته' : 'سلّمته؟'}</button>` : ''}</div><span class="tag tag--${t.tone}">${esc(t.tag)}</span></li>`).join('')
     : '<li class="empty">ما عندك شي اليوم 🎉</li>';
   $('[data-today-count]').textContent = `${ar(items.length)} مهام`;
   const news = db.get('news', []).slice(0, 2);
@@ -438,6 +483,19 @@ function renderStudentHome() {
       <div><span class="eyebrow eyebrow--light">${esc(n.kind)}</span><h3>${esc(n.title)}</h3><p>${esc(n.body)}${n.deadline ? ` • حتى ${fmtDate(n.deadline)}` : ''}</p></div>
       ${n.kind === 'مسابقة' ? `<button class="btn btn--white btn--sm" type="button" data-register="${n.id}">${db.get('registered', []).includes(n.id) ? 'مسجّل ✓' : 'سجّل'}</button>` : ''}
     </div>`).join('');
+  // هذا الأسبوع (من بياناتك الفعلية)
+  const week = weekDates().map(isoDate);
+  const hw = db.get('schoolTasks', []).filter((x) => x.kind === 'واجب' && week.includes(x.due));
+  const doneHw = hw.filter((x) => db.get('submitted', []).includes(x.id)).length;
+  const exams = getSchoolTasks().filter((x) => x.kind === 'اختبار' && x.due >= todayISO()).length + db.get('exams', []).filter((x) => x.date >= todayISO() && daysBetween(todayISO(), x.date) <= 14).length;
+  const grades = Object.values(db.get('grades', {})).flat();
+  const avg = grades.length ? Math.round((grades.reduce((a, b) => a + b, 0) / (grades.length * 20)) * 100) : 0;
+  const hours = Math.round(((store.get('focusMinutes') || 0) / 60) * 10) / 10;
+  $('[data-stats]').innerHTML = `
+    <div class="stat"><small>الواجبات المسلّمة</small><strong>${ar(doneHw)} / ${ar(hw.length)}</strong></div>
+    <div class="stat"><small>اختبارات قادمة</small><strong>${ar(exams)}</strong></div>
+    <div class="stat"><small>ساعات التركيز</small><strong>${ar(String(hours).replace('.', '٫'))}</strong></div>
+    <div class="stat"><small>معدل درجاتك</small><strong>${ar(avg)}٪</strong></div>`;
   renderBoard(boardKind);
   drawTimer();
 }
@@ -625,27 +683,37 @@ function drawTimer() {
   const ring = $('[data-ring]');
   ring.style.strokeDasharray = CIRC;
   if (focus) {
-    const leftS = Math.max(0, Math.ceil((focus.endAt - Date.now()) / 1000));
-    const m = String(Math.floor(leftS / 60)).padStart(2, '0'), s = String(leftS % 60).padStart(2, '0');
-    $('[data-timer]').textContent = ar(`${m}:${s}`);
-    $('[data-timer-label]').textContent = 'نبتتك تكبر 🌱';
-    ring.style.strokeDashoffset = CIRC * (leftS / (focus.minutes * 60));
     box.innerHTML = `
       <p>ركّز! المؤقت ما يتوقف. لو استسلمت، شجرتك تذبل 🥀</p>
       <div class="focus__btns"><button class="btn btn--ghost" type="button" data-giveup>استسلم</button></div>`;
-    if (leftS === 0) finishFocus();
+    tickTimer();
   } else {
-    $('[data-timer]').textContent = ar(`${String(focusPick).padStart(2, '0')}:٠٠`);
+    $('[data-timer]').textContent = ar(`${String(focusPick).padStart(2, '0')}:00`);
     $('[data-timer-label]').textContent = 'اختر المدة';
     ring.style.strokeDashoffset = 0;
     const trees = db.get('trees', 0);
     box.innerHTML = `
-      <p>اختر المدة وابدأ. ما تقدر توقف المؤقت، فركّز لين يخلص 💪</p>
-      <div class="chips chips--sm">${[25, 45, 60, 90].map((n) => `<button type="button" class="chip-opt${focusPick === n ? ' is-on' : ''}" data-pick-min="${n}">${ar(n)} د</button>`).join('')}
-        <label class="mini-input"><input type="number" min="5" max="180" placeholder="مدة ثانية" data-custom-min /></label></div>
+      <p>اختر المدة (من ٥ دقايق لين ٣ ساعات) وابدأ. ما تقدر توقف المؤقت، فركّز لين يخلص 💪 وكل ٢٥ دقيقة = شجرة.</p>
+      <div class="focus__step">
+        <div class="chips chips--sm">${[25, 45, 60, 90].map((n) => `<button type="button" class="chip-opt${focusPick === n ? ' is-on' : ''}" data-pick-min="${n}">${ar(n)} د</button>`).join('')}</div>
+        <div class="stepper" aria-label="المدة"><button type="button" data-step="-5" aria-label="أنقص ٥ دقايق">−</button><span>${ar(focusPick)} د</span><button type="button" data-step="5" aria-label="زِد ٥ دقايق">+</button></div>
+      </div>
       <div class="focus__plants" aria-label="غابتك">${'🌳'.repeat(Math.min(trees, 8)) || '🌱'}${trees > 8 ? ` +${ar(trees - 8)}` : ''}</div>
-      <div class="focus__btns"><button class="btn btn--coral" type="button" data-focus-start>ابدأ ${ar(focusPick)} دقيقة</button></div>`;
+      <div class="focus__btns"><button class="btn btn--coral" type="button" data-focus-start>ابدأ ${fmtDuration(focusPick)}</button></div>`;
   }
+}
+// يحدّث الوقت والدائرة بس (بدون ما يعيد بناء الأزرار عشان الضغط ما يضيع)
+function tickTimer() {
+  if (!focus) return;
+  const leftS = Math.max(0, Math.ceil((focus.endAt - Date.now()) / 1000));
+  const h = Math.floor(leftS / 3600), m = Math.floor((leftS % 3600) / 60), s = leftS % 60;
+  const t = $('[data-timer]');
+  if (t) {
+    t.textContent = ar(h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    $('[data-timer-label]').textContent = 'نبتتك تكبر 🌱';
+    $('[data-ring]').style.strokeDashoffset = CIRC * (leftS / (focus.minutes * 60));
+  }
+  if (leftS === 0) finishFocus();
 }
 function startFocus() {
   focus = { endAt: Date.now() + focusPick * 60000, minutes: focusPick };
@@ -656,17 +724,19 @@ function startFocus() {
 function runFocusTick() {
   clearInterval(focusTick);
   if (!focus) return;
-  focusTick = setInterval(() => { if (!$('[data-focus-box]') || $('[data-view="home"]').hidden) { if (focus && Date.now() >= focus.endAt) finishFocus(); return; } drawTimer(); }, 500);
+  focusTick = setInterval(tickTimer, 500);
 }
 function finishFocus() {
   if (!focus) return;
   const mins = focus.minutes;
   focus = null; db.set('focusRun', null); clearInterval(focusTick);
-  const grown = Math.max(1, Math.floor(mins / 25));
+  // كل ٢٥ دقيقة = شجرة، والدقايق كلها تنحسب في المنافسة
+  const total = (store.get('focusMinutes') || 0) + mins;
+  const grown = Math.floor(total / 25) - Math.floor((store.get('focusMinutes') || 0) / 25);
   db.set('trees', db.get('trees', 0) + grown);
-  store.set('focusMinutes', (store.get('focusMinutes') || 0) + mins);
+  store.set('focusMinutes', total);
   bumpStreak();
-  toast(`أحسنت! زرعت ${grown === 1 ? 'شجرة' : `${ar(grown)} أشجار`} 🌳 وزاد ترتيبك بالمنافسة`);
+  toast(grown ? `أحسنت! زرعت ${grown === 1 ? 'شجرة' : grown === 2 ? 'شجرتين' : `${ar(grown)} أشجار`} 🌳 وزاد ترتيبك بالمنافسة` : `أحسنت! ${fmtDuration(mins)} تركيز 👏 باقي ${fmtDuration(25 - (total % 25))} على الشجرة الجاية`);
   renderBoard(boardKind);
   drawTimer();
 }
@@ -698,7 +768,7 @@ function pointsBreakdown() {
   const items = [
     ['جلسات خلّصتها من جدولك', doneTasks, 10],
     ['أيام متتالية (ستريك)', streak, 15],
-    ['دقايق تركيز', Math.floor(minutes / 5), 1],
+    ['كل ٥ دقايق تركيز', Math.floor(minutes / 5), 1],
     ['واجبات سلّمتها', hw, 20],
   ];
   return { items, total: items.reduce((s, [, n, p]) => s + n * p, 0) + 120 };
@@ -726,6 +796,7 @@ const sectionHead = (title, extra = '') => `<div class="block__head"><h2>${title
 function pageMore() {
   return `<section class="more-grid">${NAV.student.side.filter(([id]) => id !== 'home').map(([id, title, ic]) =>
     `<a class="more-item" href="#${id}" ${id === 'focus' ? 'data-focus' : `data-route="${id}"`}>${icon(ic)}<span>${title}</span></a>`).join('')}
+    <button type="button" class="more-item" data-theme-toggle>${icon(isDark() ? 'sun' : 'moon')}<span>${isDark() ? 'الوضع الفاتح' : 'الوضع الداكن'}</span></button>
     <button type="button" class="more-item" data-switch>${icon('back')}<span>تبديل الحساب</span></button></section>`;
 }
 
@@ -734,6 +805,7 @@ const GROUPS = () => [['class', `فصلي (${myClassName()})`], ['grade', `صف�
 let communityGroup = 'class';
 const ago = (ts) => { const m = Math.round((Date.now() - ts) / 6e4); return m < 60 ? `قبل ${ar(Math.max(1, m))} د` : m < 1440 ? `قبل ${ar(Math.round(m / 60))} س` : `قبل ${ar(Math.round(m / 1440))} يوم`; };
 function pageCommunity() {
+  if (!['student', 'admin'].includes(role())) return `<section class="intro">${icon('lock')}<h2>القروبات للطلاب والمشرفين بس</h2><p>تقدر تتواصل مع الطلاب والإدارة من «الرسائل».</p><a class="btn btn--coral" href="#messages" data-route="messages">الرسائل</a></section>`;
   const posts = db.get('posts', []).filter((p) => p.group === communityGroup).sort((a, b) => b.at - a.at);
   return `
     <div class="seg seg--lg seg--wrap" role="tablist">${GROUPS().map(([k, l]) => `<button type="button" role="tab" aria-selected="${communityGroup === k}" data-group="${k}">${l}</button>`).join('')}</div>
@@ -755,14 +827,14 @@ function postCard(p) {
   return `
     <article class="post card">
       <header><span class="avatar">${esc(p.author[0])}</span><div><strong>${esc(p.author)}</strong><small>${esc(p.role)} • ${ago(p.at)}</small></div><span class="tag tag--${p.kind === 'سؤال' ? 'maroon' : 'coral'}">${esc(p.kind)}</span></header>
-      <p>${esc(p.text)}</p>
+      <p>${bidi(esc(p.text))}</p>
       ${p.file ? `<a class="post__file" ${p.fileData ? `href="${p.fileData}" download="${esc(p.file)}"` : ''}>${icon('resources')} ${esc(p.file)}</a>` : ''}
       ${p.link ? `<a class="post__file" href="${esc(p.link)}" target="_blank" rel="noopener">${icon(p.kind === 'فيديو' ? 'image' : 'resources')} افتح الرابط</a>` : ''}
       <footer>
         <button type="button" class="like${p.liked ? ' is-on' : ''}" data-like="${p.id}">❤ ${ar(p.likes)}</button>
         <span>💬 ${ar(p.comments.length)}</span>
       </footer>
-      ${p.comments.length ? `<ul class="comments">${p.comments.map((c) => `<li><b>${esc(c.who)}:</b> ${esc(c.text)}</li>`).join('')}</ul>` : ''}
+      ${p.comments.length ? `<ul class="comments">${p.comments.map((c) => `<li><b>${esc(c.who)}:</b> ${bidi(esc(c.text))}</li>`).join('')}</ul>` : ''}
       <form class="comment-form" data-comment-form="${p.id}"><input type="text" class="input" maxlength="300" placeholder="اكتب تعليق…" /><button type="submit" class="btn btn--ghost btn--sm">علّق</button></form>
     </article>`;
 }
@@ -770,12 +842,14 @@ function postCard(p) {
 /* ---------- الرسائل ---------- */
 function directory() {
   const r = role();
-  const people = [...TEACHERS, ...STAFF];
-  if (r === 'student') people.unshift(...classmates());
-  return people;
+  if (r === 'parent') return [...TEACHERS, ...STAFF];
+  if (r === 'teacher') return [...classmates(), ...TEACHERS.filter((t) => t.subject !== profile.subject), ...STAFF];
+  return [...classmates(), ...TEACHERS, ...STAFF];
 }
+// القروبات للطلاب والمشرفين بس، وكل حساب يشوف محادثاته
+const myThreads = () => db.get('threads', []).filter((t) => (t.group ? ['student', 'admin'].includes(role()) : (t.owner || 'student') === role()));
 function pageMessages() {
-  const threads = db.get('threads', []);
+  const threads = myThreads();
   if (state.thread) {
     const th = threads.find((t) => t.id === state.thread);
     if (th) return `
@@ -783,7 +857,7 @@ function pageMessages() {
         <header><button type="button" class="icon-btn icon-btn--soft" data-thread-back aria-label="رجوع">${icon('back')}</button>
           <span class="avatar">${esc(th.name.replace('قروب ', '')[0])}</span><div><strong>${esc(th.name)}</strong><small>${esc(th.role)}</small></div></header>
         <div class="thread__body" data-thread-body>
-          ${th.msgs.map((m) => `<div class="msg ${m.from === (profile?.name) ? 'msg--me' : 'msg--ai'}">${th.group && m.from !== profile?.name ? `<b class="msg__from">${esc(m.from)}</b>` : ''}${esc(m.text)}<small class="msg__time">${ago(m.at)}</small></div>`).join('')}
+          ${th.msgs.map((m) => `<div class="msg ${m.from === (profile?.name) ? 'msg--me' : 'msg--ai'}">${th.group && m.from !== profile?.name ? `<b class="msg__from">${esc(m.from)}</b>` : ''}${bidi(esc(m.text))}<small class="msg__time">${ago(m.at)}</small></div>`).join('')}
         </div>
         <form class="composer composer--inline" data-msg-form="${th.id}">
           <div class="composer__row"><textarea class="input" rows="1" maxlength="1000" placeholder="اكتب رسالة…"></textarea>
@@ -795,6 +869,7 @@ function pageMessages() {
   return `
     <section class="card">
       ${sectionHead('محادثاتك')}
+      ${threads.length ? '' : '<p class="empty">ما عندك محادثات للحين. ابدأ وحدة من تحت 👇</p>'}
       <ul class="threads">${threads.map((t) => `
         <li><button type="button" data-open-thread="${t.id}"><span class="avatar${t.group ? ' avatar--coral' : ''}">${esc(t.name.replace('قروب ', '')[0])}</span>
           <div><strong>${esc(t.name)}</strong><small>${esc(t.role)}</small><p>${esc(t.msgs[t.msgs.length - 1]?.text || '')}</p></div><span class="pts">${t.msgs.length ? ago(t.msgs[t.msgs.length - 1].at) : ''}</span></button></li>`).join('')}</ul>
@@ -937,7 +1012,7 @@ function teacherHome() {
       <button type="submit" class="btn btn--coral btn--sm">اطلب</button>
     </form>
     <section class="card">${sectionHead('آخر الواجبات', `<a class="link" href="#t-tasks" data-route="t-tasks">الكل</a>`)}${taskList(tasks.slice(-3).reverse())}</section>
-    <button type="button" class="btn btn--ghost switch-btn" data-switch>${icon('back')} تبديل الحساب</button>`;
+    <div class="actions actions--center">${themeBtn()}<button type="button" class="btn btn--ghost switch-btn" data-switch>${icon('back')} تبديل الحساب</button></div>`;
 }
 const taskList = (tasks, del) => tasks.length ? `<ul class="res-list">${tasks.map((t) => `
   <li class="res card"><span class="res__icon">${icon('grades')}</span><div><strong>${esc(t.title)}</strong><small>${esc(t.kind)} • ${esc(t.subject)} • ${relDay(t.due)}</small></div>
@@ -990,7 +1065,7 @@ function parentHome() {
     <section class="card">${sectionHead('مستواه في المواد', `<a class="link" href="#p-child" data-route="p-child">التفاصيل</a>`)}${levelsTable(levels, {})}</section>
     <section class="card">${sectionHead('المسابقات والإعلانات')}${newsList(news)}</section>
     <p class="private-note">${icon('lock')} الخطة المستقبلية والجدول خاصة بالطالب ولا تظهر لولي الأمر</p>
-    <button type="button" class="btn btn--ghost switch-btn" data-switch>${icon('back')} تبديل الحساب</button>`;
+    <div class="actions actions--center">${themeBtn()}<button type="button" class="btn btn--ghost switch-btn" data-switch>${icon('back')} تبديل الحساب</button></div>`;
 }
 function pageParentChild() {
   const levels = db.get('levels', {});
@@ -1018,7 +1093,7 @@ function adminHome() {
     </section>
     <section class="more-grid">${NAV.admin.side.filter(([id]) => id !== 'home').map(([id, title, ic]) => `<a class="more-item" href="#${id}" data-route="${id}">${icon(ic)}<span>${title}</span></a>`).join('')}</section>
     <section class="card">${sectionHead('آخر الأخبار', `<a class="link" href="#a-news" data-route="a-news">إدارة</a>`)}${newsList(db.get('news', []).slice(0, 3))}</section>
-    <button type="button" class="btn btn--ghost switch-btn" data-switch>${icon('back')} تبديل الحساب</button>`;
+    <div class="actions actions--center">${themeBtn()}<button type="button" class="btn btn--ghost switch-btn" data-switch>${icon('back')} تبديل الحساب</button></div>`;
 }
 function pageAdminNews() {
   return `
@@ -1038,7 +1113,7 @@ function pageAdminPrizes() {
     <form class="card sheet__form" data-prizes-form>
       ${sectionHead('جوائز الأوائل في المنافسة')}
       ${[0, 1, 2].map((k) => `<label class="field"><span>${['🥇 المركز الأول', '🥈 المركز الثاني', '🥉 المركز الثالث'][k]}</span><input type="text" class="input" id="p-${k}" maxlength="80" value="${esc(prizes[k] || '')}" /></label>`).join('')}
-      <p class="field__hint">تطلع للطلاب في المنافسة والمحفزات.</p>
+      <p class="field__hint">تطلع للطلاب في المنافسة والمحفزات. لازم تكون متوافقة مع تعليمات وزارة التعليم: شهادات تقدير، قسائم شرائية، هدايا، أو مبالغ مالية. ممنوع جوائز فيها غياب أو خروج مبكر أو إعفاء أو درجات إضافية.</p>
       <button type="submit" class="btn btn--coral">احفظ</button>
     </form>
     <section class="card">${sectionHead('الأوائل هالأسبوع (المدرسة)')}<ol class="leaders">${boardRows('school').slice(0, 3).map(boardRow).join('')}</ol></section>`;
@@ -1150,8 +1225,11 @@ document.addEventListener('click', (e) => {
   if (simple) { $$('.chip-opt', simple.parentElement).forEach((c) => c.classList.toggle('is-on', c === simple)); return; }
   if (t.closest('[data-switch]')) { profile = null; db.set('profile', null); welcomeRole = null; closeSheet(); renderWelcome(); return; }
 
+  if (t.closest('[data-theme-toggle]')) { toggleTheme(); if (!profile) renderWelcome(); return; }
   // النوافذ
   if (t.closest('[data-close-sheet]')) { closeSheet(); return; }
+  const sb = t.closest('[data-submit]');
+  if (sb) { let l = db.get('submitted', []); l = l.includes(sb.dataset.submit) ? l.filter((x) => x !== sb.dataset.submit) : [...l, sb.dataset.submit]; db.set('submitted', l); if (l.includes(sb.dataset.submit)) toast('أحسنت! +٢٠ نقطة ✓'); renderStudentHome(); return; }
 
   // الجدول
   const day = t.closest('[data-day]');
@@ -1190,6 +1268,8 @@ document.addEventListener('click', (e) => {
   // المؤقت
   const pm = t.closest('[data-pick-min]');
   if (pm) { focusPick = Number(pm.dataset.pickMin); drawTimer(); return; }
+  const stp = t.closest('[data-step]');
+  if (stp) { focusPick = clamp(focusPick + Number(stp.dataset.step), 5, 180); drawTimer(); return; }
   if (t.closest('[data-focus-start]')) { startFocus(); return; }
   if (t.closest('[data-giveup]')) { giveUp(); return; }
   if (t.closest('[data-giveup-yes]')) { focus = null; db.set('focusRun', null); clearInterval(focusTick); closeSheet(); drawTimer(); toast('ذبلت الشجرة 🥀 جرّب مرة ثانية'); return; }
@@ -1214,8 +1294,8 @@ document.addEventListener('click', (e) => {
   if (nt) {
     const p = directory().find((x) => x.id === nt.dataset.newThread);
     const threads = db.get('threads', []);
-    let th = threads.find((x) => x.with === p.id);
-    if (!th) { th = { id: 'dm-' + p.id, with: p.id, name: p.name, role: p.role, msgs: [] }; threads.unshift(th); db.set('threads', threads); }
+    let th = threads.find((x) => x.with === p.id && (x.owner || 'student') === role());
+    if (!th) { th = { id: `dm-${role()}-${p.id}`, owner: role(), with: p.id, name: p.name, role: p.role, msgs: [] }; threads.unshift(th); db.set('threads', threads); }
     state.thread = th.id; renderPage('messages'); return;
   }
 
@@ -1347,7 +1427,9 @@ document.addEventListener('submit', async (e) => {
   }
   if (f.matches('[data-prizes-form]')) {
     e.preventDefault();
-    db.set('prizes', [0, 1, 2].map((k) => $(`#p-${k}`).value.trim()).filter(Boolean)); toast('انحفظت الجوائز ✓');
+    const list = [0, 1, 2].map((k) => $(`#p-${k}`).value.trim()).filter(Boolean);
+    if (list.some((x) => BAD_PRIZE.test(x))) { toast('هالجائزة تخالف تعليمات الوزارة. اختر شهادة أو قسيمة أو هدية'); return; }
+    db.set('prizes', list); toast('انحفظت الجوائز ✓');
   }
 });
 
@@ -1360,14 +1442,13 @@ document.addEventListener('change', (e) => {
     toast('انحفظ المستوى ✓');
   }
   if (t.matches('#post-file')) { const n = $('[data-post-file-name]'); if (n) n.textContent = t.files[0] ? `📎 ${t.files[0].name}` : ''; }
-  if (t.matches('[data-custom-min]')) { const n = clamp(Math.round(Number(t.value) || 25), 5, 180); focusPick = n; drawTimer(); }
 });
 
 /* =========================================================
    البداية
    ========================================================= */
 if (state.plan && (!Array.isArray(state.plan.week) || state.plan.week.length !== 7 || !state.answers)) { state.plan = null; }
-if (profile) seed();
+if (profile) { seed(); migrate(); }
 chat.turns = db.get('chat:' + (role() || 'student'), chat.turns);
 renderChrome();
 if (focus) { if (Date.now() >= focus.endAt) finishFocus(); else runFocusTick(); }

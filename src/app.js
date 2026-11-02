@@ -12,6 +12,10 @@ const ar = (v) => String(v).replace(/\d/g, (d) => AR_DIGITS[d]);
 const esc = (v) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// المعادلات والنصوص الإنجليزية تنعرض من اليسار لليمين داخل النص العربي
+const MATH_RUN = /[A-Za-z0-9\u00B2\u00B3\u221A\u03C0(][A-Za-z0-9\u00B2\u00B3\u221A\u03C0+\-/^=().,×÷± ]*[A-Za-z0-9\u00B2\u00B3)]|[A-Za-z0-9]/g;
+const bidi = (escaped) => String(escaped).replace(MATH_RUN, (m) => (/[+\-/^=×÷±²³√]|\d[a-z]|[a-z]\d/i.test(m) ? `<bdi class="math" dir="ltr">${m}</bdi>` : m));
+
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem('washijah:' + k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem('washijah:' + k, JSON.stringify(v)); } catch { /* التخزين غير متاح */ } },
@@ -76,6 +80,8 @@ const ICONS = {
   image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
   ask: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   lock: '<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.more}</svg>`;
@@ -218,7 +224,7 @@ function localPlan(a) {
 
   return {
     source: 'local',
-    summary: `خطتك توصلك لـ${major.label} في ${uni} خلال ${ar(days)} يوم. قسّمناها لأربع مراحل، وجدولك الأسبوعي يركز على ${focus.slice(0, 3).join(' و')}${a.grade >= 2 ? ' مع تدريب القدرات' : ''}.`,
+    summary: `خطتك توصلك لـ${major.label} في ${uni}، وباقي ${ar(days)} يوم لين تتخرج. قسّمناها لأربع مراحل، وجدولك الأسبوعي يركز على ${focus.slice(0, 3).join(' و')}${a.grade >= 2 ? ' مع تدريب القدرات' : ''}.`,
     phases: phases.map((p) => ({ ...p, from: isoDate(p.from), to: isoDate(p.to) })),
     milestones: milestones.map((m) => ({ ...m, date: isoDate(m.date) })),
     week: localWeek(a, focus, major),
@@ -529,7 +535,7 @@ function renderHomePlan() {
       </div>
       <div class="plan-card__meta">
         <span>أنجزت ${ar(p)}٪ من جدول هذا الأسبوع</span>
-        <span>باقي ${ar(days)} يوم</span>
+        <span>باقي ${ar(nextGoal(a).days)} يوم على ${nextGoal(a).label}</span>
       </div>
     </div>
     <a class="btn btn--white" href="#plan" data-route="plan">افتح خطتي</a>`;
@@ -761,9 +767,9 @@ function renderPlanView() {
     <section class="goal">
       <span class="chip chip--light">✦ ${p.source === 'ai' ? 'صممها الذكاء الاصطناعي' : 'خطة مبدئية'}</span>
       <h2>${esc(a.dream)}</h2>
-      <p>${esc(a.major === 'other' && a.majorOther ? a.majorOther : major.label)}${a.university && a.university !== 'ما قررت للحين' ? ` • ${esc(a.university)}` : ''}</p>
+      <p>${esc(a.major === 'other' && a.majorOther ? a.majorOther : major.label)}${a.university && a.university !== 'ما قررت للحين' ? ` • ${esc(a.university)}` : ''} • تتخرج ${fmtMonth(timeline(a.grade).end)}</p>
       <div class="goal__stats">
-        <div><strong>${ar(days)}</strong><small>يوم باقي</small></div>
+        <div><strong>${ar(nextGoal(a).days)}</strong><small>يوم على ${nextGoal(a).label}</small></div>
         <div><strong>${ar(tGoal)}٪</strong><small>الموزونة المطلوبة</small></div>
         <div><strong>${tNow != null ? ar(tNow) + '٪' : '—'}</strong><small>الموزونة الحالية</small></div>
       </div>
@@ -853,7 +859,7 @@ function boardRows(kind) {
     });
   }
   const meMinutes = 405 + (store.get('focusMinutes') || 0);
-  rows.push({ name: state.answers?.name?.trim() || 'أنت', cls: kind === 'school' ? `${ar(state.answers?.grade || 2)}/${ar(3)}` : '', minutes: meMinutes, streak: 5, me: true });
+  rows.push({ name: profile?.name || state.answers?.name?.trim() || 'أنت', cls: kind === 'school' ? `${ar(state.answers?.grade || 2)}/${ar(3)}` : '', minutes: meMinutes, streak: 5, me: true });
   rows.sort((a, b) => b.minutes - a.minutes);
   rows.forEach((r, k) => { r.rank = k + 1; r.trees = Math.floor(r.minutes / 25); });
   return rows;
@@ -912,6 +918,8 @@ function renderBoardView() {
       <button type="button" class="btn btn--white btn--sm" data-focus>ابدأ جلسة</button>
     </section>
 
+    ${db.get('prizes', []).length ? `<section class="card">${sectionHead('جوائز الأوائل من المدرسة')}<ol class="prizes">${db.get('prizes', []).map((p, k) => `<li><span class="rank">${['🥇', '🥈', '🥉'][k] || ar(k + 1)}</span>${esc(p)}</li>`).join('')}</ol></section>` : ''}
+
     <section class="block">
       <div class="block__head"><h2>الترتيب كامل</h2><span class="count">${ar(rows.length)} طالب</span></div>
       <ol class="leaders leaders--full">${rows.slice(3).map(boardRow).join('')}</ol>
@@ -963,7 +971,7 @@ const aiErrorText = (code) => ({
   unavailable: 'الذكاء الاصطناعي مو متاح الحين، جرّب بعد شوي.',
 }[code] || 'صار خطأ، جرّب مرة ثانية.');
 
-const fmtAi = (t) => esc(t)
+const fmtAi = (t) => bidi(esc(t))
   .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   .replace(/^\s*[-•]\s+(.*)$/gm, '<span class="li">$1</span>')
   .replace(/\n/g, '<br>');
