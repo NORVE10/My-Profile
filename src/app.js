@@ -92,7 +92,7 @@ const MODULES = [
   { id: 'grades', title: 'الدرجات', desc: 'درجاتك لكل مادة في مكان واحد', tone: 'beige' },
   { id: 'rewards', title: 'المحفزات', desc: 'نقاط وشارات وإنجازات', tone: 'maroon', badge: '٣٢٠ نقطة' },
 ];
-const ROUTES = ['home', 'plan', 'schedule', 'ai', 'board'];
+const ROUTES = ['home', 'plan', 'schedule', 'ai', 'board', 'community', 'messages', 'resources', 'grades', 'rewards', 'feedback', 'more', 't-tasks', 't-resources', 't-students', 't-feedback', 'a-news', 'a-reports', 'a-prizes', 'p-child'];
 const SIDEBAR = [
   { id: 'home', title: 'الرئيسية' },
   { id: 'plan', title: 'خطتي المستقبلية' },
@@ -108,20 +108,6 @@ const TABS = [
   { id: 'board', title: 'المنافسة' },
 ];
 const navAttr = (id, title) => (ROUTES.includes(id) ? `data-route="${id}"` : id === 'focus' ? 'data-focus' : `data-soon="${title}"`);
-
-function renderChrome() {
-  $('[data-modules]').innerHTML = MODULES.map((m) => `
-    <a class="module module--${m.tone}" href="#${m.id}" ${navAttr(m.route ? m.id : '_', m.title)}>
-      <span class="module__icon">${icon(m.id)}</span>
-      ${m.badge ? `<span class="module__badge">${m.badge}</span>` : ''}
-      <strong>${m.title}</strong>
-      <small>${m.desc}</small>
-    </a>`).join('');
-  $('[data-nav]').innerHTML = SIDEBAR.map((s) =>
-    `<a href="#${s.id}" data-nav-id="${s.id}" ${navAttr(s.id, s.title)}>${icon(s.id)}<span>${s.title}</span></a>`).join('');
-  $('[data-tabbar]').innerHTML = TABS.map((t) =>
-    `<a href="#${t.id}" data-nav-id="${t.id}" ${navAttr(t.id, t.title)}>${icon(t.id)}<span>${t.title}</span></a>`).join('');
-}
 
 /* =========================================================
    بيانات الخطة: التخصصات والجامعات
@@ -144,7 +130,7 @@ const UNIVERSITIES_SA = ["جامعة الملك سعود", "جامعة المل�
 const UNIVERSITIES_WORLD = ["Massachusetts Institute of Technology (MIT)", "Stanford University", "Harvard University", "University of Cambridge", "University of Oxford", "Imperial College London", "ETH Zurich", "University College London (UCL)", "California Institute of Technology (Caltech)", "University of Chicago", "Princeton University", "Yale University", "Columbia University", "University of Pennsylvania", "Cornell University", "Johns Hopkins University", "University of California, Berkeley", "University of California, Los Angeles (UCLA)", "University of Michigan", "New York University (NYU)", "Carnegie Mellon University", "Duke University", "Northwestern University", "Brown University", "Dartmouth College", "Rice University", "Vanderbilt University", "Washington University in St. Louis", "Georgia Institute of Technology", "University of Texas at Austin", "University of Washington", "University of Illinois Urbana-Champaign", "University of Wisconsin-Madison", "University of California, San Diego", "University of California, Davis", "University of California, Irvine", "University of California, Santa Barbara", "University of Southern California", "Boston University", "Purdue University", "Pennsylvania State University", "Ohio State University", "University of Minnesota", "University of North Carolina at Chapel Hill", "University of Virginia", "University of Florida", "University of Maryland", "Emory University", "Georgetown University", "Texas A&M University", "Arizona State University", "University of Rochester", "Case Western Reserve University", "Rensselaer Polytechnic Institute", "Northeastern University", "Tufts University", "University of Pittsburgh", "Michigan State University", "Virginia Tech", "University of Colorado Boulder", "Colorado School of Mines", "Rutgers University", "University of Toronto", "McGill University", "University of British Columbia", "University of Waterloo", "University of Alberta", "McMaster University", "Université de Montréal", "Queen's University", "Western University", "King's College London", "London School of Economics (LSE)", "University of Edinburgh", "University of Manchester", "University of Bristol", "University of Warwick", "University of Glasgow", "Durham University", "University of Birmingham", "University of Leeds", "University of Sheffield", "University of Nottingham", "University of Southampton", "Queen Mary University of London", "Lancaster University", "University of York", "University of St Andrews", "University of Exeter", "Newcastle University", "Cardiff University", "University of Bath", "Loughborough University", "EPFL", "University of Zurich", "Technical University of Munich (TUM)", "LMU Munich", "Heidelberg University", "Humboldt University of Berlin", "Free University of Berlin", "Technical University of Berlin", "RWTH Aachen University", "Karlsruhe Institute of Technology (KIT)", "University of Freiburg", "University of Tübingen", "University of Göttingen", "University of Bonn", "University of Hamburg", "Sorbonne University", "PSL University", "Institut Polytechnique de Paris", "Université Paris-Saclay", "Sciences Po", "KU Leuven", "Ghent University", "University of Amsterdam", "Delft University of Technology", "Leiden University", "Utrecht University", "Erasmus University Rotterdam", "Eindhoven University of Technology", "Wageningen University", "University of Groningen", "University of Copenhagen", "Technical University of Denmark (DTU)", "Aarhus University", "Lund University", "KTH Royal Institute of Technology", "Karolinska Institutet", "Uppsala University", "Stockholm University", "Chalmers University of Technology", "University of Oslo", "University of Helsinki", "Aalto University", "Trinity College Dublin", "University College Dublin", "University of Vienna", "TU Wien", "Politecnico di Milano", "University of Bologna", "Sapienza University of Rome", "University of Padua", "University of Barcelona", "Autonomous University of Madrid", "Complutense University of Madrid", "University of Lisbon", "University of Porto", "Charles University", "University of Warsaw", "Khalifa University", "United Arab Emirates University", "American University of Sharjah", "New York University Abu Dhabi", "Mohamed bin Zayed University of Artificial Intelligence (MBZUAI)", "American University of Beirut", "Qatar University", "Hamad Bin Khalifa University", "Sultan Qaboos University", "Kuwait University", "University of Bahrain", "University of Jordan", "Cairo University", "American University in Cairo", "Middle East Technical University", "Boğaziçi University", "Koç University", "Sabancı University", "University of Tokyo", "Kyoto University", "Osaka University", "Tohoku University", "Institute of Science Tokyo", "Tsinghua University", "Peking University", "Fudan University", "Shanghai Jiao Tong University", "Zhejiang University", "University of Science and Technology of China", "Nanjing University", "National University of Singapore (NUS)", "Nanyang Technological University (NTU)", "University of Hong Kong", "Hong Kong University of Science and Technology", "Chinese University of Hong Kong", "City University of Hong Kong", "Hong Kong Polytechnic University", "Seoul National University", "KAIST", "Yonsei University", "Korea University", "POSTECH", "Sungkyunkwan University", "National Taiwan University", "IIT Bombay", "IIT Delhi", "IIT Madras", "Indian Institute of Science", "University of Malaya", "Universiti Teknologi Malaysia", "Chulalongkorn University", "University of Melbourne", "University of Sydney", "UNSW Sydney", "Australian National University", "Monash University", "University of Queensland", "University of Western Australia", "University of Adelaide", "University of Technology Sydney", "University of Auckland", "University of Buenos Aires", "University of São Paulo", "National Autonomous University of Mexico (UNAM)", "Pontifical Catholic University of Chile", "Tecnológico de Monterrey", "University of Cape Town", "University of the Witwatersrand"];
 const UNIVERSITIES = [...UNIVERSITIES_SA, ...UNIVERSITIES_WORLD, 'ما قررت للحين'];
 // مصادر المذاكرة — الطالب يختار، أو يكتب مصدره
-const QUD_SOURCES = ['المفكر', 'المعاصر', 'نون أكاديمي', 'عين', 'يوتيوب', 'أخرى'];
+const QUD_SOURCES = ['المفكر', 'المعاصر', 'المنصف', 'يلو', 'أ. إياد', 'أ. إيهاب', 'نون أكاديمي', 'عين', 'أخرى'];
 const SCHOOL_SOURCES = ['كتاب المدرسة', 'عين', 'مدرستي', 'نون أكاديمي', 'يوتيوب', 'أخرى'];
 const SUBJECTS = ['رياضيات', 'فيزياء', 'كيمياء', 'أحياء', 'إنجليزي', 'لغتي', 'حاسب', 'علوم الأرض'];
 const PROGRAMS = ['موهبة', 'مسك', 'أكاديمية طويق', 'دورات أونلاين', 'أولمبياد ومسابقات', 'تطوع', 'نادي مدرسي', 'ما عندي للحين'];
@@ -248,12 +234,6 @@ const sourceOf = (a, kind) => {
 };
 
 // واجبات المدرسة (نفس مهام «اليوم» في الرئيسية) — لاحقاً تجي من المعلم
-const SCHOOL_TASKS = [
-  { title: 'رياضيات: حل تمارين الوحدة ٣ وسلّمها', note: 'التسليم الليلة ١١:٥٩ م', when: 'today' },
-  { title: 'فيزياء: ذاكر لاختبار الثلاثاء القصير وحل ١٥ سؤال', note: 'الاختبار الثلاثاء • الحصة الثالثة', when: 1 },
-  { title: 'كيمياء: اكتب تقرير المختبر (المقدمة والنتائج)', note: 'التسليم الخميس', when: 3 },
-];
-
 function localWeek(a, focus, major) {
   const start = toMin(a.startTime || '16:00');
   const qud = sourceOf(a, 'qud');
@@ -284,11 +264,11 @@ function localWeek(a, focus, major) {
     ? { title: `${programs[k % programs.length]}: كمّل مهام هالأسبوع`, minutes: min, type: 'passion' }
     : { title: major.passion, minutes: min, type: 'passion' };
   const homework = (d) => {
-    const due = SCHOOL_TASKS.filter((x) => (x.when === 'today' ? today : x.when) === d);
+    const due = getSchoolTasks().filter((x) => (x.when === 'today' ? today : x.when) === d);
     if (due.length) return due.map((t) => ({ title: t.title, note: t.note, minutes: 45, type: 'homework' }));
     return [{ title: `واجبات المدرسة: حل أسئلة درس اليوم في ${next()} من ${school}`, minutes: 45, type: 'homework' }];
   };
-  const exam = (min) => (a.grade === 3 && part % 3 === 2 ? tahTask(min) : qudTask(min));
+  const exam = (min, d) => courseTask(a, d, min) || (a.grade === 3 && part % 3 === 2 ? tahTask(min) : qudTask(min));
 
   const week = [];
   for (let d = 0; d < 7; d++) {
@@ -298,7 +278,7 @@ function localWeek(a, focus, major) {
     if (d === 5) items = [
       passionTask(60, 0),
       { title: 'مراجعة خفيفة: اقرأ ملخصاتك وحل ١٠ أسئلة', minutes: 40, type: 'review' },
-      exam(40),
+      exam(40, d),
     ];
     else if (d === 6) items = [
       { title: 'مراجعة الأسبوع: حل ١٠ أسئلة من كل مادة درستها', minutes: 60, type: 'review' },
@@ -309,10 +289,11 @@ function localWeek(a, focus, major) {
     else items = [
       ...homework(d),
       studyTask(45),
-      ...(a.grade >= 2 && d % 2 === 0 ? [exam(35)] : []),
+      ...(hasCourse(a) ? [exam(40, d)] : a.grade >= 2 && d % 2 === 0 ? [exam(35, d)] : []),
       studyTask(40),
       { title: 'مراجعة: لخّص دروس اليوم في ورقة وحدة', minutes: 20, type: 'review' },
     ];
+    if (!studyDaysOf(a).includes(d)) items = weekend ? [] : homework(d);
     let t = d === 5 ? Math.max(start, toMin('16:30')) : start; // الجمعة بعد العصر
     let used = 0;
     const blocks = [];
@@ -338,10 +319,16 @@ function localWeek(a, focus, major) {
 /* =========================================================
    الذكاء الاصطناعي (يشتغل لما الصفحة مفتوحة داخل Claude)
    ========================================================= */
-let samplePromise = Promise.resolve(null);
-try {
-  if (window.claude && typeof window.claude.use === 'function') samplePromise = window.claude.use('sample').catch(() => null);
-} catch { /* بدون ذكاء اصطناعي */ }
+// الذكاء الاصطناعي: داخل Claude نستخدم حساب المستخدم، وبرا Claude نستخدم سيرفر وشيجة (/api/ai)
+let samplePromise = (async () => {
+  try {
+    if (window.claude && typeof window.claude.use === 'function') {
+      const s = await window.claude.use('sample');
+      if (s) return s;
+    }
+  } catch { /* نكمّل للسيرفر */ }
+  return serverAi();
+})();
 
 function aiPrompt(a, base) {
   const major = MAJORS[a.major] || MAJORS.other;
@@ -359,9 +346,12 @@ function aiPrompt(a, base) {
     'مواد يحتاج يقويها': a.weak.join('، ') || 'ما حدد',
     'برامج وتدريبات': [...a.programs, a.programsNote].filter(Boolean).join('، ') || 'لا يوجد',
     'يذاكر القدرات من': sourceOf(a, 'qud'),
+    'خطة دورة القدرات': coursePlanText(a, 'qud'),
+    'خطة دورة التحصيلي': coursePlanText(a, 'tah'),
+    'أيام المذاكرة بالأسبوع': `${a.studyDays || 5} (${studyDaysOf(a).map((d) => DAYS[d]).join('، ')})`,
     'يذاكر التحصيلي من': sourceOf(a, 'tah'),
     'يذاكر مواد المدرسة من': sourceOf(a, 'school'),
-    'واجبات واختبارات المدرسة هالأسبوع': SCHOOL_TASKS.map((t) => `${t.title} (${t.note})`).join(' | '),
+    'واجبات واختبارات المدرسة هالأسبوع': getSchoolTasks().map((t) => `${t.title} (${t.note})`).join(' | '),
     'ساعات المذاكرة بأيام الدراسة': a.hoursWeekday,
     'ساعات المذاكرة بالإجازة (الجمعة والسبت)': a.hoursWeekend,
     'يبدأ المذاكرة الساعة': a.startTime,
@@ -379,6 +369,7 @@ ${Object.entries(facts).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 - اربط الجدول بأهدافه: المواد الضعيفة، مواد التخصص، القدرات/التحصيلي حسب صفه، ووقت لبرامجه أو شغفه.
 - كل جلسة لازم تكون مهمة محددة فيها رقم ومصدر، مثل: «قدرات: خلّص ٦ دروس كمي في المفكر» أو «فيزياء: حل ١٥ سؤال من الفصل الثالث من كتاب المدرسة». ممنوع عناوين عامة مثل «واجبات اليوم» أو «مذاكرة».
 - استخدم المصادر اللي اختارها الطالب بالاسم، وحط واجبات المدرسة في الأيام المناسبة قبل موعدها.
+- لو عنده خطة دورة (قدرات/تحصيلي)، وزّع دروسها بأرقام الدروس بالضبط حسب «خطة الدورة» (مثل «قدرات: خلّص الدروس ١٣–١٨ في المفكر»)، وخل الأيام اللي ما يذاكر فيها بدون دروس دورة.
 - title قصير (أقل من ٧٠ حرف)، وnote اختياري لتوضيح أو نصيحة للجلسة (أقل من ١٢٠ حرف).
 - أضف آخر كل يوم جلسة نوعها free بعنوان «وقت حر».
 - المراحل من اليوم لين ${isoDate(timeline(a.grade).end)} ومتتالية بدون فجوات.
@@ -452,11 +443,11 @@ const state = {
 };
 
 const emptyAnswers = () => ({
-  name: '', grade: 2, dream: '', passion: '', seriousness: 4,
+  name: profile?.name || '', grade: profile?.grade || 2, dream: '', passion: '', seriousness: 4,
   major: '', majorOther: '', university: '',
   gpaNow: null, gpaTarget: null, qudNow: null, qudTarget: null, tahNow: null, tahTarget: null,
   weak: [], programs: [], programsNote: '',
-  qudSource: '', qudSourceOther: '', tahSource: '', tahSourceOther: '', schoolSource: 'كتاب المدرسة', schoolSourceOther: '',
+  qudSource: '', qudSourceOther: '', qudStarted: false, qudReached: null, qudTotal: null, qudExam: '', tahStarted: false, tahReached: null, tahTotal: null, tahExam: '', studyDays: 5, tahSource: '', tahSourceOther: '', schoolSource: 'كتاب المدرسة', schoolSourceOther: '',
   hoursWeekday: 2.5, hoursWeekend: 4, startTime: '16:00',
 });
 
@@ -493,19 +484,6 @@ function go(route) {
   else show();
 }
 
-function show() {
-  const route = currentRoute();
-  $$('[data-view]').forEach((v) => { v.hidden = v.dataset.view !== route; });
-  $$('[data-nav-id]').forEach((a) => a.classList.toggle('is-active', a.dataset.navId === route));
-  renderHero(route);
-  if (route === 'home') renderHomePlan();
-  if (route === 'plan') renderPlanView();
-  if (route === 'schedule') renderSchedule();
-  if (route === 'ai') renderAi();
-  if (route === 'board') renderBoardView();
-  window.scrollTo({ top: 0 });
-}
-
 /* =========================================================
    الرئيسية: بطاقة الخطة
    ========================================================= */
@@ -516,10 +494,10 @@ function weekProgress() {
   for (let d = 0; d < 7; d++) {
     const date = new Date(start); date.setDate(start.getDate() + d);
     const key = isoDate(date);
-    state.plan.week[d].blocks.forEach((b, i) => {
+    state.plan.week[d].blocks.forEach((b) => {
       if (b.type === 'free') return;
       total++;
-      if (state.done[`${key}|${i}`]) done++;
+      if (state.done[`${key}|${b.id}`]) done++;
     });
   }
   return total ? Math.round((done / total) * 100) : 0;
@@ -612,7 +590,8 @@ function stepBody(i, a) {
       ? `<input type="text" data-field="${kind}SourceOther" value="${esc(a[kind + 'SourceOther'])}" placeholder="اكتب اسم المصدر أو المعلم" maxlength="40" />` : '';
     return `
     <div class="field"><span>تذاكر القدرات من وين؟</span>${chipGroup('qudSource', QUD_SOURCES, a.qudSource, false)}${other('qud')}</div>
-    ${a.grade >= 2 ? `<div class="field"><span>والتحصيلي؟</span>${chipGroup('tahSource', QUD_SOURCES, a.tahSource, false)}${other('tah')}</div>` : ''}
+    ${courseFields('qud', a)}
+    ${a.grade >= 2 ? `<div class="field"><span>والتحصيلي؟</span>${chipGroup('tahSource', QUD_SOURCES, a.tahSource, false)}${other('tah')}</div>${courseFields('tah', a)}` : ''}
     <div class="field"><span>ومواد المدرسة؟</span>${chipGroup('schoolSource', SCHOOL_SOURCES, a.schoolSource, false)}${other('school')}</div>
     <div class="field"><span>عندك برامج أو تدريبات؟</span>${chipGroup('programs', PROGRAMS, a.programs, true)}</div>
     <label class="field"><span>تفاصيل (اختياري)</span><textarea data-field="programsNote" rows="2" maxlength="200" placeholder="مثلاً: دورة بايثون على منصة سطر، ومشارك في أولمبياد الرياضيات">${esc(a.programsNote)}</textarea></label>`;
@@ -622,6 +601,9 @@ function stepBody(i, a) {
       <input type="range" min="1" max="6" step="0.5" data-field="hoursWeekday" value="${a.hoursWeekday}" /></label>
     <label class="field range"><span>الإجازة (الجمعة والسبت): <b data-out="hoursWeekend">${ar(a.hoursWeekend)} ساعة</b></span>
       <input type="range" min="1" max="8" step="0.5" data-field="hoursWeekend" value="${a.hoursWeekend}" /></label>
+    <div class="field"><span>كم يوم بالأسبوع تبي تذاكر؟</span>
+      ${chipGroup('studyDays', [3, 4, 5, 6, 7].map((n) => ({ value: n, label: `${ar(n)} أيام` })), a.studyDays || 5, false)}
+    </div>
     <div class="field"><span>متى تبدأ تذاكر عادةً؟</span>
       ${chipGroup('startTime', ['14:00', '15:00', '16:00', '17:00', '19:00', '20:00'].map((t) => ({ value: t, label: fmtTime(toMin(t)) })), a.startTime, false)}
     </div>`;
@@ -801,6 +783,8 @@ function renderPlanView() {
       </div>
     </section>
 
+    ${coursesCard(a)}
+
     <section class="block">
       <div class="block__head"><h2>مراحل خطتك</h2><span class="count">${ar(p.phases.length)} مراحل</span></div>
       <ol class="phases">
@@ -842,79 +826,6 @@ function renderPlanView() {
 /* =========================================================
    جدولي
    ========================================================= */
-function renderSchedule() {
-  const view = $('[data-view="schedule"]');
-  if (!state.plan) {
-    view.innerHTML = `
-      <section class="intro">
-        <div class="intro__icon">${icon('schedule')}</div>
-        <h2>ما عندك جدول للحين</h2>
-        <p>عبّ خطتك المستقبلية، وجدولك الأسبوعي بيتسوى تلقائياً على أهدافك ووقتك الفاضي.</p>
-        <a class="btn btn--coral" href="#plan" data-route="plan">سوّ خطتي</a>
-      </section>`;
-    return;
-  }
-  const todayIdx = new Date().getDay();
-  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - todayIdx);
-  const dates = DAYS.map((_, d) => { const x = new Date(weekStart); x.setDate(weekStart.getDate() + d); return x; });
-  const sel = state.scheduleDay;
-  const key = isoDate(dates[sel]);
-  const blocks = state.plan.week[sel].blocks;
-  const study = blocks.filter((b) => b.type !== 'free');
-  const total = study.reduce((s, b) => s + b.minutes, 0);
-  const doneCount = study.filter((b) => state.done[`${key}|${blocks.indexOf(b)}`]).length;
-
-  view.innerHTML = `
-    <section class="days" role="tablist" aria-label="أيام الأسبوع">
-      ${dates.map((d, k) => `
-        <button type="button" role="tab" class="day${k === sel ? ' is-on' : ''}${k === todayIdx ? ' is-today' : ''}" aria-selected="${k === sel}" data-day="${k}">
-          <small>${DAYS_SHORT[k]}</small><strong>${ar(d.getDate())}</strong>
-        </button>`).join('')}
-    </section>
-
-    <section class="block">
-      <div class="block__head">
-        <h2>${DAYS[sel]}${sel === todayIdx ? ' • اليوم' : ''}</h2>
-        <span class="count">${ar(doneCount)} / ${ar(study.length)} • ${fmtDuration(total)}</span>
-      </div>
-      <ul class="slots">
-        ${blocks.map((b, i) => {
-          const done = !!state.done[`${key}|${i}`];
-          return `
-          <li class="slot">
-            <span class="slot__time">${fmtTime(b.start)}</span>
-            ${b.type === 'free'
-              ? `<div class="slot__card slot--free"><span>${esc(b.title)}</span></div>`
-              : `<div class="slot__card slot--${b.type}${done ? ' is-done' : ''}">
-                  <button type="button" class="slot__main" aria-pressed="${done}" data-slot="${i}">
-                    <span class="slot__check">${icon('check')}</span>
-                    <span><strong>${esc(b.title)}</strong>${b.note ? `<em>${esc(b.note)}</em>` : ''}<small>${fmtDuration(b.minutes)}</small></span>
-                  </button>
-                  <button type="button" class="slot__ask" aria-label="اسأل المساعد عن هذي الجلسة" data-ask-slot="${i}">${icon('ai')}</button>
-                </div>`}
-          </li>`;
-        }).join('')}
-      </ul>
-      <p class="hint">اضغط على الجلسة لما تخلصها ✓ • واضغط ${icon('ai')} عشان المساعد يساعدك فيها</p>
-    </section>
-
-    <section class="card ai-edit">
-      <div class="block__head"><h2>${icon('spark')} عدّل جدولك بالذكاء الاصطناعي</h2></div>
-      <textarea id="sched-req" class="input" data-sched-req rows="2" maxlength="300" placeholder="مثلاً: عندي اختبار فيزياء الثلاثاء، أو ما أقدر أذاكر الخميس">${esc(state.schedReq || '')}</textarea>
-      <button type="button" class="btn btn--coral" data-sched-ai ${state.schedBusy ? 'disabled' : ''}>${state.schedBusy ? 'يعدّل جدولك…' : 'عدّل جدولي'}</button>
-    </section>
-
-    <section class="private">
-      <span class="eyebrow">${icon('lock')} خاص</span>
-      <strong>جدولك يظهر لك بس</strong>
-    </section>
-
-    <div class="actions">
-      <button type="button" class="btn btn--coral" data-focus>${icon('focus')} ابدأ جلسة تركيز</button>
-      <a class="btn btn--ghost" href="#plan" data-route="plan">خطتي المستقبلية</a>
-    </div>`;
-}
-
 /* =========================================================
    المنافسة: لوحة ترتيب (فصلي / مدرستي — منفصلة)
    ========================================================= */
@@ -1029,7 +940,7 @@ function studentContext() {
     `النسب الحالية/المطلوبة: ثانوية ${a.gpaNow ?? '؟'}/${a.gpaTarget}، قدرات ${a.qudNow ?? '؟'}/${a.qudTarget}، تحصيلي ${a.tahNow ?? '؟'}/${a.tahTarget}`,
     `مواد يحتاج يقويها: ${a.weak.join('، ') || 'ما حدد'}`,
     `يذاكر القدرات من ${sourceOf(a, 'qud')}، ومواد المدرسة من ${sourceOf(a, 'school')}`,
-    `واجبات المدرسة: ${SCHOOL_TASKS.map((t) => `${t.title} (${t.note})`).join(' | ')}`,
+    `واجبات المدرسة: ${getSchoolTasks().map((t) => `${t.title} (${t.note})`).join(' | ')}`,
     `اليوم ${DAYS[d]}، وجدوله اليوم: ${today || 'ما فيه'}`,
   ].join('\n');
 }
@@ -1065,9 +976,14 @@ const QUICK = [
   { label: 'وش أذاكر اليوم؟', send: 'وش أذاكر اليوم؟ رتّب لي جلسات اليوم وقل لي من وين أبدأ.' },
 ];
 
-function bubble(t) {
+function bubble(t, k) {
   if (t.role === 'user') return `<div class="msg msg--me">${t.image ? `<span class="msg__img">${icon('image')} صورة</span>` : ''}${fmtAi(t.content)}</div>`;
-  return `<div class="msg msg--ai${t.error ? ' is-error' : ''}">${t.pending ? '<span class="typing"><i></i><i></i><i></i></span>' : fmtAi(t.content)}</div>`;
+  if (t.pending) return '<div class="msg msg--ai"><span class="typing"><i></i><i></i><i></i></span></div>';
+  const { clean, acts } = parseActions(t.content);
+  return `<div class="msg msg--ai${t.error ? ' is-error' : ''}">${fmtAi(clean)}${acts.map((x, i) => {
+    const done = (t.applied || []).includes(i);
+    return `<button type="button" class="act${done ? ' is-done' : ''}" data-act="${k}" data-k="${i}" ${done ? 'disabled' : ''}>${done ? '✓ تم' : '+ ' + esc(actionLabel(x))}</button>`;
+  }).join('')}</div>`;
 }
 
 function renderAi() {
@@ -1077,13 +993,13 @@ function renderAi() {
   const draft = $('[data-chat-input]')?.value ?? chat.draft ?? '';
   view.innerHTML = `
     <section class="ai">
-      ${off ? `<div class="note note--warn">${icon('spark')} المساعد الذكي يشتغل لما تفتح وشيجة من رابط Claude. هنا تقدر تشوف شكله بس.</div>` : ''}
+      ${off ? `<div class="note note--warn">${icon('spark')} المساعد الذكي مو مفعّل هنا للحين: يحتاج مفتاح الذكاء الاصطناعي في إعدادات الموقع، أو تفتح وشيجة من رابط Claude.</div>` : ''}
       <div class="chat" data-chat aria-live="polite">
-        <div class="msg msg--ai">هلا${name ? ` ${esc(name)}` : ''}! أنا وشيجة 👋<br>أقدر أحل لك أي سؤال خطوة بخطوة، أصحح إجابتك، أشرح لك درس، أو أقولك وش تذاكر اليوم.${chat.canImages ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
-        ${chat.turns.map(bubble).join('')}
+        <div class="msg msg--ai">هلا${(profile?.name || name) ? ` ${esc(profile?.name || name)}` : ''}! أنا وشيجة 👋<br>${aiWelcome()}${chat.canImages && role() === 'student' ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
+        ${chat.turns.map((t, k) => bubble(t, k)).join('')}
       </div>
       <div class="quick" role="group" aria-label="اختصارات">
-        ${QUICK.map((q, k) => `<button type="button" class="chip-opt" data-quick="${k}">${q.label}</button>`).join('')}
+        ${quickFor().map((q, k) => `<button type="button" class="chip-opt" data-quick="${k}">${q.label}</button>`).join('')}
         ${chat.turns.length ? '<button type="button" class="chip-opt chip-opt--ghost" data-chat-clear>محادثة جديدة</button>' : ''}
       </div>
       <form class="composer" data-composer>
@@ -1107,14 +1023,14 @@ function updateLastBubble() {
   const msgs = $$('[data-chat] .msg');
   const last = msgs[msgs.length - 1];
   const t = chat.turns[chat.turns.length - 1];
-  if (last && t) { last.outerHTML = bubble(t); window.scrollTo({ top: document.body.scrollHeight }); }
+  if (last && t) { last.outerHTML = bubble(t, chat.turns.length - 1); window.scrollTo({ top: document.body.scrollHeight }); }
 }
 
 async function sendChat(text) {
   text = (text || '').trim();
   if ((!text && !chat.image) || chat.busy) return;
   if (chat.sample === undefined) chat.sample = await samplePromise;
-  if (!chat.sample) { toast('المساعد يشتغل لما تفتح وشيجة من رابط Claude'); return; }
+  if (!chat.sample) { toast('المساعد الذكي مو مفعّل هنا للحين'); return; }
   const img = chat.image;
   chat.image = null;
   chat.turns.push({ role: 'user', content: text || 'حل السؤال اللي في الصورة خطوة بخطوة', image: !!img });
@@ -1127,7 +1043,7 @@ async function sendChat(text) {
   let history = chat.turns.slice(0, -1).filter((t) => !t.error && t.content).slice(-12)
     .map((t) => ({ role: t.role, content: t.image ? `[أرفقت صورة]\n${t.content}` : t.content }));
   while (history.length && history[0].role !== 'user') history.shift();
-  const input = [{ role: 'user', content: aiRules() }, { role: 'assistant', content: 'تمام، جاهز أساعدك.' }, ...history];
+  const input = [{ role: 'user', content: roleRules() }, { role: 'assistant', content: 'تمام، جاهز أساعدك.' }, ...history];
   const opts = { cache: false, signal: chat.ctl.signal, onText: ({ text: tx }) => { reply.content = tx; reply.pending = false; if (currentRoute() === 'ai') updateLastBubble(); } };
   if (img) opts.images = [img];
   try {
@@ -1141,7 +1057,7 @@ async function sendChat(text) {
   reply.pending = false;
   chat.busy = false;
   chat.ctl = null;
-  store.set('chat', chat.turns.filter((t) => !t.pending && !t.error).slice(-30));
+  store.set('chat:' + (role() || 'student'), chat.turns.filter((t) => !t.pending && !t.error).slice(-30));
   if (currentRoute() === 'ai') renderAi();
 }
 
@@ -1155,7 +1071,7 @@ async function editScheduleAi() {
   const req = (state.schedReq || '').trim();
   if (req.length < 3) { toast('اكتب وش تبي تغيّر في جدولك'); return; }
   const sample = await samplePromise;
-  if (!sample) { toast('تعديل الجدول بالذكاء الاصطناعي يشتغل لما تفتح وشيجة من رابط Claude'); return; }
+  if (!sample) { toast('الذكاء الاصطناعي مو مفعّل هنا للحين'); return; }
   state.schedBusy = true; renderSchedule();
   const week = state.plan.week.map((d) => ({ day: d.day, blocks: d.blocks.map((b) => ({ start: hhmm(b.start), minutes: b.minutes, title: b.title, note: b.note || '', type: b.type })) }));
   const prompt = `أنت مرشد أكاديمي في منصة «وشيجة». عدّل جدول المذاكرة الأسبوعي لهذا الطالب حسب طلبه، وخل باقي الجدول مثل ما هو قدر الإمكان.
@@ -1189,52 +1105,6 @@ ${JSON.stringify(week)}
 }
 
 /* =========================================================
-   مؤقت التركيز
-   ========================================================= */
-const FOCUS_SECONDS = 25 * 60;
-const CIRC = 2 * Math.PI * 52;
-let left = FOCUS_SECONDS, running = null, endAt = 0;
-
-function drawTimer() {
-  const m = String(Math.floor(left / 60)).padStart(2, '0');
-  const s = String(left % 60).padStart(2, '0');
-  $('[data-timer]').textContent = ar(`${m}:${s}`);
-  const ring = $('[data-ring]');
-  ring.style.strokeDasharray = CIRC;
-  ring.style.strokeDashoffset = CIRC * (left / FOCUS_SECONDS);
-}
-function toggleTimer() {
-  const btn = $('[data-timer-toggle]');
-  if (running) {
-    clearInterval(running); running = null;
-    btn.textContent = 'كمّل';
-    $('[data-timer-label]').textContent = 'متوقف مؤقتاً';
-    return;
-  }
-  btn.textContent = 'إيقاف';
-  $('[data-timer-label]').textContent = 'نبتتك تكبر 🌱';
-  endAt = Date.now() + left * 1000; // من الساعة الفعلية عشان يبقى دقيق بالخلفية
-  running = setInterval(() => {
-    left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
-    drawTimer();
-    if (left === 0) {
-      clearInterval(running); running = null;
-      btn.textContent = 'ابدأ';
-      $('[data-timer-label]').textContent = 'خلصت الجلسة 🌳';
-      store.set('focusMinutes', (store.get('focusMinutes') || 0) + 25);
-      renderBoard(boardKind);
-      toast('أحسنت! زرعت شجرة جديدة 🌳 وزاد ترتيبك بالمنافسة');
-    }
-  }, 250);
-}
-function resetTimer() {
-  clearInterval(running); running = null; left = FOCUS_SECONDS;
-  $('[data-timer-toggle]').textContent = 'ابدأ';
-  $('[data-timer-label]').textContent = 'جلسة مذاكرة';
-  drawTimer();
-}
-
-/* =========================================================
    الأحداث
    ========================================================= */
 document.addEventListener('click', (e) => {
@@ -1245,14 +1115,12 @@ document.addEventListener('click', (e) => {
   if (t.closest('[data-focus]')) {
     e.preventDefault();
     if (currentRoute() !== 'home') go('home');
-    setTimeout(() => $('#focus').scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+    setTimeout(() => $('#focus') && $('#focus').scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
     return;
   }
   const soon = t.closest('[data-soon]');
   if (soon) { e.preventDefault(); toast(`«${soon.dataset.soon}» — قريباً ✨`); return; }
 
-  if (t.closest('[data-timer-toggle]')) return toggleTimer();
-  if (t.closest('[data-timer-reset]')) return resetTimer();
   const board = t.closest('[data-board]');
   if (board) return renderBoard(board.dataset.board);
 
@@ -1265,7 +1133,8 @@ document.addEventListener('click', (e) => {
     const name = group.dataset.chips;
     const multi = group.dataset.multi === '1';
     let val = chip.dataset.value;
-    if (name === 'grade' || name === 'seriousness') val = Number(val);
+    if (name === 'grade' || name === 'seriousness' || name === 'studyDays') val = Number(val);
+    if (/Started$/.test(name)) { state.draft[name] = val === 'yes'; renderWizard(); return; }
     if (multi) {
       let list = state.draft[name];
       if (val === 'ما عندي للحين') list = list.includes(val) ? [] : [val];
@@ -1312,34 +1181,15 @@ document.addEventListener('click', (e) => {
   // المساعد
   const quick = t.closest('[data-quick]');
   if (quick) {
-    const q = QUICK[Number(quick.dataset.quick)];
+    const q = quickFor()[Number(quick.dataset.quick)];
     if (q.send) { sendChat(q.send); return; }
     const box = $('[data-chat-input]');
     if (box && !box.disabled) { box.value = q.fill; box.focus(); box.setSelectionRange(box.value.length, box.value.length); autoGrow(box); }
     return;
   }
-  if (t.closest('[data-chat-clear]')) { chat.turns = []; store.set('chat', []); renderAi(); return; }
+  if (t.closest('[data-chat-clear]')) { chat.turns = []; store.set('chat:' + (role() || 'student'), []); renderAi(); return; }
   if (t.closest('[data-chat-stop]')) { chat.ctl?.abort(); return; }
   if (t.closest('[data-img-remove]')) { chat.image = null; renderAi(); return; }
-  const askSlot = t.closest('[data-ask-slot]');
-  if (askSlot) {
-    const b = state.plan.week[state.scheduleDay].blocks[Number(askSlot.dataset.askSlot)];
-    askAbout(`ساعدني أخلص هذي الجلسة: «${b.title}»${b.note ? ` (${b.note})` : ''} ومدتها ${fmtDuration(b.minutes)}. قسّمها لي خطوات صغيرة بالدقايق، واعطني أول سؤال أبدأ فيه.`);
-    return;
-  }
-  if (t.closest('[data-sched-ai]')) { editScheduleAi(); return; }
-
-  // الجدول
-  const day = t.closest('[data-day]');
-  if (day) { state.scheduleDay = Number(day.dataset.day); renderSchedule(); return; }
-  const slot = t.closest('[data-slot]');
-  if (slot) {
-    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay() + state.scheduleDay);
-    const k = `${isoDate(weekStart)}|${slot.dataset.slot}`;
-    if (state.done[k]) delete state.done[k]; else { state.done[k] = true; toast('أحسنت! كمّل 💪'); }
-    store.set('done', state.done);
-    renderSchedule();
-  }
 });
 
 document.addEventListener('input', (e) => {
@@ -1347,6 +1197,7 @@ document.addEventListener('input', (e) => {
   if (!f || !state.draft) return;
   const k = f.dataset.field;
   if (/Now$|Target$/.test(k)) { state.draft[k] = num(f.value); updateWeighted(); }
+  else if (/Reached$|Total$/.test(k)) { state.draft[k] = f.value === '' ? null : Math.max(0, Math.round(Number(f.value) || 0)); }
   else if (f.type === 'range') { state.draft[k] = Number(f.value); const o = $(`[data-out="${k}"]`); if (o) o.textContent = `${ar(f.value)} ساعة`; }
   else state.draft[k] = f.value;
 });
@@ -1384,12 +1235,3 @@ document.addEventListener('change', (e) => {
 
 window.addEventListener('hashchange', show);
 
-/* =========================================================
-   البداية
-   ========================================================= */
-// لو المستخدم عنده بيانات من نسخة قديمة ناقصة، نتجاهلها
-if (state.plan && (!Array.isArray(state.plan.week) || state.plan.week.length !== 7 || !state.answers)) { state.plan = null; }
-renderChrome();
-renderBoard('class');
-drawTimer();
-show();

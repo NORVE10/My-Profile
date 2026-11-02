@@ -57,22 +57,9 @@
         <section class="block" aria-labelledby="today-title">
           <div class="block__head">
             <h2 id="today-title">اليوم</h2>
-            <span class="count">٣ مهام</span>
+            <span class="count" data-today-count></span>
           </div>
-          <ul class="tasks">
-            <li class="task task--coral">
-              <div><strong>رياضيات — تمارين الوحدة ٣</strong><small>التسليم اليوم، ١١:٥٩ م</small></div>
-              <span class="tag tag--coral">واجب</span>
-            </li>
-            <li class="task task--maroon">
-              <div><strong>اختبار فيزياء قصير</strong><small>الثلاثاء • الحصة الثالثة</small></div>
-              <span class="tag tag--maroon">اختبار</span>
-            </li>
-            <li class="task task--coral">
-              <div><strong>تقرير مختبر الكيمياء</strong><small>التسليم الخميس</small></div>
-              <span class="tag tag--coral">واجب</span>
-            </li>
-          </ul>
+          <ul class="tasks" data-today></ul>
         </section>
 
         <section class="block" aria-labelledby="modules-title">
@@ -86,7 +73,7 @@
           <section class="focus" id="focus" aria-labelledby="focus-title">
             <div class="block__head">
               <h2 id="focus-title">ركّز</h2>
-              <span class="count">🔥 ٥ أيام متتالية</span>
+              <a class="link" href="#rewards" data-route="rewards">غابتي 🌳</a>
             </div>
             <div class="focus__row">
               <div class="focus__ring">
@@ -99,14 +86,7 @@
                   <small data-timer-label>جلسة مذاكرة</small>
                 </div>
               </div>
-              <div class="focus__side">
-                <p>ازرع نبتتك وذاكر بدون مشتتات. كل جلسة تكمّلها تكسبك نقاط.</p>
-                <div class="focus__plants" aria-label="نباتات اليوم">🌱🌿🌳</div>
-                <div class="focus__btns">
-                  <button class="btn btn--coral" type="button" data-timer-toggle>ابدأ</button>
-                  <button class="btn btn--ghost" type="button" data-timer-reset>إعادة</button>
-                </div>
-              </div>
+              <div class="focus__side" data-focus-box></div>
             </div>
           </section>
 
@@ -127,13 +107,7 @@
           <div class="block__head">
             <h2 id="news-title">أخبار المدرسة</h2>
           </div>
-          <div class="news">
-            <div>
-              <h3>مسابقة العلوم</h3>
-              <p>التسجيل مفتوح حتى ٣٠ نوفمبر</p>
-            </div>
-            <button class="btn btn--white btn--sm" type="button" data-soon="التسجيل في المسابقة">سجّل</button>
-          </div>
+          <div class="news-list" data-news></div>
         </section>
 
         <section class="block" aria-labelledby="week-title">
@@ -160,11 +134,15 @@
 
       <!-- ================= المنافسة ================= -->
       <div class="content view" data-view="board" hidden></div>
+
+      <!-- ================= باقي الصفحات ================= -->
+      <div class="content view" data-view="page" hidden></div>
     </main>
 
     <nav class="tabbar" aria-label="التنقل" data-tabbar></nav>
   </div>
 
+  <div class="welcome" data-welcome hidden></div>
   <div class="toast" role="status" aria-live="polite" data-toast></div>
   <script>{{SCRIPT}}</script>
 </body>
