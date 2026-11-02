@@ -8,7 +8,10 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
-const ar = (v) => String(v).replace(/\d/g, (d) => AR_DIGITS[d]);
+const ar = (v) => String(v).replace(/(\d)\.(\d)/g, '$1٫$2').replace(/\d/g, (d) => AR_DIGITS[d]);
+// العدد مع المعدود بالعربي الصحيح
+const countTxt = (n, one, two, few, many) => (n === 1 ? one : n === 2 ? two : n >= 3 && n <= 10 ? `${ar(n)} ${few}` : `${ar(n)} ${many}`);
+const daysTxt = (n) => (n === 0 ? 'اليوم' : countTxt(n, 'يوم واحد', 'يومين', 'أيام', 'يوم'));
 const esc = (v) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -18,7 +21,7 @@ const bidi = (escaped) => String(escaped).replace(MATH_RUN, (m) => (/[+\-/^=×÷
 
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem('washijah:' + k)); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem('washijah:' + k, JSON.stringify(v)); } catch { /* التخزين غير متاح */ } },
+  set(k, v) { try { localStorage.setItem('washijah:' + k, JSON.stringify(v)); return true; } catch { return false; /* التخزين ممتلئ أو غير متاح */ } },
 };
 
 const DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -90,13 +93,13 @@ const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name
 const MODULES = [
   { id: 'ai', title: 'المساعد الذكي', desc: 'يحل أسئلتك ويصحّح إجاباتك خطوة بخطوة', tone: 'coral', badge: 'AI', route: true },
   { id: 'schedule', title: 'جدولي', desc: 'جدول مذاكرة مبني على أهدافك', tone: 'maroon', route: true },
-  { id: 'level', title: 'مستواي', desc: 'تقدير تلقائي لمستواك في كل مادة', tone: 'pink' },
-  { id: 'resources', title: 'المصادر', desc: 'ملفات وروابط ينزّلها معلموك', tone: 'beige', badge: '٤ جديد' },
+  { id: 'level', title: 'مستواي ودرجاتي', desc: 'مستواك ودرجاتك في كل مادة', tone: 'pink' },
+  { id: 'resources', title: 'المصادر', desc: 'ملفات وروابط ينزّلها معلموك', tone: 'beige' },
   { id: 'community', title: 'المجتمع', desc: 'شارك محتوى وفيديوهات مع زملائك', tone: 'beige' },
-  { id: 'messages', title: 'الرسائل', desc: 'تواصل مع زملائك ومجموعات المواد', tone: 'beige', badge: '٣' },
+  { id: 'messages', title: 'الرسائل', desc: 'زملاؤك ومعلموك والإدارة', tone: 'beige' },
   { id: 'feedback', title: 'اقتراحات للمعلمين', desc: 'رسائل لتطوير الشرح والحصص', tone: 'pink' },
-  { id: 'grades', title: 'الدرجات', desc: 'درجاتك لكل مادة في مكان واحد', tone: 'beige' },
-  { id: 'rewards', title: 'المحفزات', desc: 'نقاط وشارات وإنجازات', tone: 'maroon', badge: '٣٢٠ نقطة' },
+  { id: 'board', title: 'المنافسة', desc: 'ترتيبك في الفصل والمدرسة', tone: 'beige' },
+  { id: 'rewards', title: 'المحفزات', desc: 'نقاط وشارات وإنجازات', tone: 'maroon' },
 ];
 const ROUTES = ['home', 'plan', 'schedule', 'ai', 'board', 'community', 'messages', 'resources', 'grades', 'rewards', 'feedback', 'more', 't-tasks', 't-resources', 't-students', 't-feedback', 'a-news', 'a-reports', 'a-prizes', 'p-child'];
 const SIDEBAR = [
@@ -154,7 +157,7 @@ function timeline(grade) {
   const now = new Date();
   const yearEnd = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
   const end = new Date(yearEnd + (3 - grade), 5, 15); // منتصف يونيو من سنة التخرج
-  const days = Math.max(30, Math.round((end - now) / 864e5));
+  const days = Math.max(0, Math.round((new Date(isoDate(end)) - new Date(isoDate(now))) / 864e5));
   return { now, end, days };
 }
 
@@ -171,8 +174,12 @@ function localPlan(a) {
     tah: a.tahNow != null ? a.tahTarget - a.tahNow : null,
   };
   const uni = a.university && a.university !== 'ما قررت للحين' ? a.university : 'الجامعة اللي تناسبك';
+  const qp = coursePlan(a, 'qud');
+  const tp = a.grade >= 2 ? coursePlan(a, 'tah') : null;
+  const qudDate = qp ? new Date(qp.exam) : at(0.65);
+  const tahDate = tp ? new Date(tp.exam) : at(0.8);
 
-  const phases = [
+  let phases = [
     {
       title: 'التأسيس وبناء العادة', from: now, to: at(0.25),
       goals: [
@@ -207,24 +214,40 @@ function localPlan(a) {
     },
   ];
 
+  // لو حدد موعد اختبار القدرات، نبني المراحل حوله
+  if (qp && qudDate < at(0.85)) {
+    const finish = new Date(qp.finish);
+    const afterQ = new Date(Math.max(qudDate.getTime() + 864e5, now.getTime() + 2 * 864e5));
+    const tEnd = tahDate > afterQ ? tahDate : at(0.9) > afterQ ? at(0.9) : new Date(afterQ.getTime() + 864e5);
+    phases = [
+      { title: `دورة القدرات (${qp.source})`, from: now, to: finish > now ? finish : new Date(now.getTime() + 864e5),
+        goals: [`خلّص ${lessonsTxt(qp.remaining)} الباقية: ${lessonsTxt(qp.perDay)} بكل يوم مذاكرة`, `قوِّ أساسك في ${focus.slice(0, 2).join(' و')}`, 'خلّص واجباتك أول بأول وبدون تأجيل'] },
+      { title: 'مراجعة القدرات', from: finish > now ? finish : now, to: qudDate,
+        goals: [`نماذج واختبارات تجريبية لين ${fmtDate(qudDate)}`, `هدفك في القدرات ${ar(a.qudTarget)}٪`, 'راجع كل سؤال غلطت فيه'] },
+      { title: a.grade >= 2 ? 'التحصيلي والمعدل' : 'المعدل والتأسيس للتحصيلي', from: afterQ, to: tEnd,
+        goals: [a.grade >= 2 ? `هدفك في التحصيلي ${ar(a.tahTarget)}٪` : `ابدأ تأسيس ${major.subjects.join(' و')} للتحصيلي`, phases[1].goals[0], `ركّز على ${major.subjects.join(' و')}`] },
+      { title: 'التجهيز للقبول', from: tEnd, to: end, goals: phases[3].goals },
+    ];
+  }
+  const mock = new Date(Math.min(now.getTime() + 21 * 864e5, Math.max(now.getTime() + 864e5, qudDate.getTime() - 7 * 864e5)));
   const milestones = [
     { title: 'أول أسبوع على جدولك الجديد', date: new Date(now.getTime() + 7 * 864e5) },
-    { title: a.grade >= 2 ? 'أول اختبار قدرات تجريبي' : 'أول نموذج قدرات تجريبي', date: new Date(now.getTime() + 21 * 864e5) },
-    { title: 'اختبار القدرات', date: at(0.65) },
-    { title: 'اختبار التحصيلي', date: at(0.8) },
+    { title: a.grade >= 2 ? 'أول اختبار قدرات تجريبي' : 'أول نموذج قدرات تجريبي', date: mock },
+    { title: `اختبار القدرات${qp && qp.examGiven ? '' : ' (موعد تقريبي)'}`, date: qudDate },
+    { title: `اختبار التحصيلي${tp && tp.examGiven ? '' : ' (موعد تقريبي)'}`, date: tahDate },
     { title: `التقديم على ${uni}`, date: end },
-  ];
+  ].sort((x, y) => x.date - y.date);
 
   const tips = [];
   if (a.seriousness <= 2) tips.push(`بما إنك للحين تستكشف، جرّب يوم مفتوح أو كلّم طالب يدرس ${major.label} قبل ما تقرر نهائياً.`);
-  else tips.push(`حماسك لـ${major.label} واضح، خلّه يكون سبب تذكّره كل ما تعبت.`);
+  else tips.push(`حماسك لتخصص ${major.label} واضح، خلّه يكون سبب تذكّره كل ما تعبت.`);
   if (weak.length) tips.push(`ابدأ يومك بالمادة الأصعب (${weak[0]}) وأنت مرتاح، وخلّ السهلة للآخر.`);
   tips.push('استخدم مؤقت «ركّز» لكل جلسة، ٤٥ دقيقة مذاكرة و١٥ راحة.');
   if (!programs.length) tips.push('البرامج والتدريبات تقوّي ملفك، سجّل في واحد على الأقل هذا الفصل.');
 
   return {
     source: 'local',
-    summary: `خطتك توصلك لـ${major.label} في ${uni}، وباقي ${ar(days)} يوم لين تتخرج. قسّمناها لأربع مراحل، وجدولك الأسبوعي يركز على ${focus.slice(0, 3).join(' و')}${a.grade >= 2 ? ' مع تدريب القدرات' : ''}.`,
+    summary: `خطتك توصلك لتخصص ${major.label} في ${uni}، وباقي ${daysTxt(days)} لين تتخرج. قسّمناها لأربع مراحل، وجدولك الأسبوعي يركز على ${focus.slice(0, 3).join(' و')}${a.grade >= 2 ? ' مع تدريب القدرات' : ''}.`,
     phases: phases.map((p) => ({ ...p, from: isoDate(p.from), to: isoDate(p.to) })),
     milestones: milestones.map((m) => ({ ...m, date: isoDate(m.date) })),
     week: localWeek(a, focus, major),
@@ -235,8 +258,8 @@ function localPlan(a) {
 // المصادر اللي اختارها الطالب
 const sourceOf = (a, kind) => {
   const v = a[kind + 'Source'];
-  if (v === 'أخرى') return (a[kind + 'SourceOther'] || '').trim() || 'مصدرك';
-  return v || (kind === 'school' ? 'كتاب المدرسة' : 'مصدرك');
+  if (v === 'أخرى') return (a[kind + 'SourceOther'] || '').trim() || (kind === 'school' ? 'كتاب المدرسة' : '');
+  return v || (kind === 'school' ? 'كتاب المدرسة' : '');
 };
 
 // واجبات المدرسة (نفس مهام «اليوم» في الرئيسية) — لاحقاً تجي من المعلم
@@ -246,17 +269,16 @@ function localWeek(a, focus, major) {
   const tah = sourceOf(a, 'tah');
   const school = sourceOf(a, 'school');
   const programs = a.programs.filter((p) => p !== 'ما عندي للحين');
-  const today = new Date().getDay();
   let rot = 0, part = 0;
   const next = () => focus[rot++ % focus.length];
   const qudTask = (min) => {
     const lessons = Math.max(2, Math.round(min / 7));
     const kind = part++ % 2 === 0 ? 'كمي' : 'لفظي';
-    return { title: `قدرات: خلّص ${ar(lessons)} دروس ${kind} في ${qud}`, note: 'وقف بعد كل درسين وحل تمارينها', minutes: min, type: 'exam' };
+    return { title: `قدرات: ${qud ? `خلّص ${lessonsTxt(lessons)} ${kind} في ${qud}` : `حل ${ar(Math.round(min / 2))} سؤال ${kind}`}`, note: 'وقف كل شوي وراجع أخطاءك', minutes: min, type: 'exam' };
   };
   const tahTask = (min) => {
     const subj = major.subjects[part++ % major.subjects.length];
-    return { title: `تحصيلي: حل ${ar(Math.round(min / 2))} سؤال ${subj} من ${tah}`, note: 'علّم الأسئلة اللي غلطت فيها وارجع لها', minutes: min, type: 'exam' };
+    return { title: `تحصيلي: حل ${ar(Math.round(min / 2))} سؤال ${subj}${tah ? ` من ${tah}` : ''}`, note: 'علّم الأسئلة اللي غلطت فيها وارجع لها', minutes: min, type: 'exam' };
   };
   const studyTask = (min, weakFirst) => {
     const subj = next();
@@ -270,8 +292,10 @@ function localWeek(a, focus, major) {
     ? { title: `${programs[k % programs.length]}: كمّل مهام هالأسبوع`, minutes: min, type: 'passion' }
     : { title: major.passion, minutes: min, type: 'passion' };
   const homework = (d) => {
-    const due = getSchoolTasks().filter((x) => (x.when === 'today' ? today : x.when) === d);
-    if (due.length) return due.map((t) => ({ title: t.title, note: t.note, minutes: 45, type: 'homework' }));
+    const all = getSchoolTasks().filter((x) => x.when != null);
+    // الواجب في يوم تسليمه أو قبله، والاختبار نذاكر له اليوم اللي قبله
+    const due = all.filter((x) => (x.kind === 'اختبار' ? Math.max(0, x.when - 1) : x.when) === d);
+    if (due.length) return due.map((t) => ({ title: t.kind === 'اختبار' ? `ذاكر لـ${t.title}` : t.title, note: `${t.kind === 'اختبار' ? 'الاختبار' : 'التسليم'} يوم ${DAYS[t.when]}`, minutes: 45, type: 'homework' }));
     return [{ title: `واجبات المدرسة: حل أسئلة درس اليوم في ${next()} من ${school}`, minutes: 45, type: 'homework' }];
   };
   const exam = (min, d) => courseTask(a, d, min) || (a.grade === 3 && part % 3 === 2 ? tahTask(min) : qudTask(min));
@@ -288,14 +312,14 @@ function localWeek(a, focus, major) {
     ];
     else if (d === 6) items = [
       { title: 'مراجعة الأسبوع: حل ١٠ أسئلة من كل مادة درستها', minutes: 60, type: 'review' },
-      { title: a.grade === 3 ? `اختبار تحصيلي تجريبي في ${tah}` : `اختبار قدرات تجريبي في ${qud}`, note: 'بعده راجع كل سؤال غلطت فيه', minutes: 50, type: 'exam' },
+      { title: a.grade === 3 ? `اختبار تحصيلي تجريبي${tah ? ` في ${tah}` : ''}` : `اختبار قدرات تجريبي${qud ? ` في ${qud}` : ''}`, note: 'بعده راجع كل سؤال غلطت فيه', minutes: 50, type: 'exam' },
       studyTask(45, true),
       passionTask(45, 1),
     ];
     else items = [
       ...homework(d),
-      studyTask(45),
       ...(hasCourse(a) ? [exam(40, d)] : a.grade >= 2 && d % 2 === 0 ? [exam(35, d)] : []),
+      studyTask(45),
       studyTask(40),
       { title: 'مراجعة: لخّص دروس اليوم في ورقة وحدة', minutes: 20, type: 'review' },
     ];
@@ -514,7 +538,7 @@ function renderHomePlan() {
   if (!state.plan || !state.answers) {
     el.innerHTML = `
       <div class="plan-card__body">
-        <span class="chip chip--light">✦ بالذكاء الاصطناعي</span>
+        <span class="chip chip--light">✦ خطتك الذكية</span>
         <h2 id="plan-title">خطتي المستقبلية</h2>
         <p>قلّنا وش حلمك، ونسوي لك خطة من اليوم لين توصل له، مع جدول مذاكرة على وقتك.</p>
       </div>
@@ -535,7 +559,7 @@ function renderHomePlan() {
       </div>
       <div class="plan-card__meta">
         <span>أنجزت ${ar(p)}٪ من جدول هذا الأسبوع</span>
-        <span>باقي ${ar(nextGoal(a).days)} يوم على ${nextGoal(a).label}</span>
+        <span>باقي ${daysTxt(nextGoal(a).days)} على ${nextGoal(a).label}</span>
       </div>
     </div>
     <a class="btn btn--white" href="#plan" data-route="plan">افتح خطتي</a>`;
@@ -769,7 +793,7 @@ function renderPlanView() {
       <h2>${esc(a.dream)}</h2>
       <p>${esc(a.major === 'other' && a.majorOther ? a.majorOther : major.label)}${a.university && a.university !== 'ما قررت للحين' ? ` • ${esc(a.university)}` : ''} • تتخرج ${fmtMonth(timeline(a.grade).end)}</p>
       <div class="goal__stats">
-        <div><strong>${ar(nextGoal(a).days)}</strong><small>يوم على ${nextGoal(a).label}</small></div>
+        <div><strong>${daysTxt(nextGoal(a).days)}</strong><small>باقي على ${nextGoal(a).label}</small></div>
         <div><strong>${ar(tGoal)}٪</strong><small>الموزونة المطلوبة</small></div>
         <div><strong>${tNow != null ? ar(tNow) + '٪' : '—'}</strong><small>الموزونة الحالية</small></div>
       </div>
@@ -852,14 +876,14 @@ function boardRows(kind) {
   for (let k = 0; k < count; k++) {
     mins -= Math.round(6 + rnd() * (kind === 'class' ? 28 : 22));
     rows.push({
-      name: BOYS[(k + offset) % BOYS.length],
-      cls: kind === 'school' ? `${ar(1 + Math.floor(rnd() * 3))}/${ar(1 + Math.floor(rnd() * 4))}` : '',
+      name: boardNames()[(k + offset) % boardNames().length],
+      cls: kind === 'school' ? `${ar(1 + Math.floor(rnd() * 3))}/${['أ', 'ب', 'ج', 'د'][Math.floor(rnd() * 4)]}` : '',
       minutes: Math.max(20, mins),
       streak: 1 + Math.floor(rnd() * 12),
     });
   }
-  const meMinutes = 405 + (store.get('focusMinutes') || 0);
-  rows.push({ name: profile?.name || state.answers?.name?.trim() || 'أنت', cls: kind === 'school' ? `${ar(state.answers?.grade || 2)}/${ar(3)}` : '', minutes: meMinutes, streak: 5, me: true });
+  const meMinutes = weekFocusMinutes();
+  rows.push({ name: profile?.name || 'أنت', cls: kind === 'school' ? myClass() : '', minutes: meMinutes, streak: (db.get('streak', { days: 0 }) || {}).days || 0, me: true });
   rows.sort((a, b) => b.minutes - a.minutes);
   rows.forEach((r, k) => { r.rank = k + 1; r.trees = Math.floor(r.minutes / 25); });
   return rows;
@@ -1097,12 +1121,14 @@ ${JSON.stringify(week)}
 رد بـ JSON فقط: {"message":"جملة قصيرة للطالب عن وش غيرت","week":[{"day":0,"blocks":[{"start":"16:00","minutes":45,"title":"","note":"","type":"homework|study|exam|passion|review|free"}]}]}`;
   try {
     const ai = await sample.json(prompt, { modelTier: 'default' });
+    const old = state.plan.week;
     state.plan.week = parseWeek(ai && ai.week, state.plan.week);
+    // الجلسات اللي ما تغيرت تحتفظ بعلامة الإنجاز
+    state.plan.week.forEach((d, k) => d.blocks.forEach((b) => { const same = old[k].blocks.find((o) => o.title === b.title && o.start === b.start); if (same && same.id) b.id = same.id; }));
     store.set('plan', state.plan);
     // نمسح علامات الإنجاز لهالأسبوع لأن الجلسات تغيرت
     const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay());
-    for (let d = 0; d < 7; d++) { const x = new Date(ws); x.setDate(ws.getDate() + d); const k = isoDate(x) + '|'; Object.keys(state.done).forEach((key) => key.startsWith(k) && delete state.done[key]); }
-    store.set('done', state.done);
+    void ws;
     state.schedReq = '';
     toast(str(ai && ai.message, 120) || 'عدّلت جدولك ✦');
   } catch (e) {
@@ -1223,7 +1249,7 @@ document.addEventListener('submit', (e) => {
   }
   if (e.target.matches('[data-home-ask]')) {
     e.preventDefault();
-    const box = $('#home-ask');
+    const box = e.target.querySelector('input');
     const q = box.value.trim();
     if (!q) { go('ai'); return; }
     box.value = '';
@@ -1237,8 +1263,7 @@ document.addEventListener('change', (e) => {
   if (!f) return;
   if (!f.type.startsWith('image/')) { toast('أرفق صورة بس'); return; }
   chat.draft = $('[data-chat-input]')?.value || '';
-  chat.image = f;
-  renderAi();
+  compressImage(f).then((img) => { chat.image = img; renderAi(); });
 });
 
 window.addEventListener('hashchange', show);

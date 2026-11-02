@@ -10,7 +10,7 @@
   --beige: #f1e7dd;
   --white: #ffffff;
   --ink: #3e1d1b;
-  --muted: #8b706b;
+  --muted: #75605b;
   --line: #eadbd0;
   --surface: #ffffff;
   --heading: #622a27;
@@ -681,7 +681,7 @@ select.input { appearance: auto; }
 .prizes li { display: flex; gap: 10px; align-items: center; background: var(--cream); border-radius: var(--radius-sm); padding: 10px 12px; font-weight: 500; }
 .report li { display: grid; grid-template-columns: 40px 1fr auto auto; gap: 10px; align-items: center; font-size: 0.85rem; }
 .report li span { color: var(--muted); white-space: nowrap; }
-@media (max-width: 480px) { .report li { grid-template-columns: 36px 1fr auto; } .report li span:last-child { display: none; } .people { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .report li { grid-template-columns: 36px 1fr auto; } .report li > span:last-child { display: none; } .people { grid-template-columns: 1fr; } }
 
 .act { display: block; margin-top: 10px; border: 1.5px solid var(--coral); background: var(--pink-soft); color: var(--coral); font: inherit; font-weight: 600; font-size: 0.86rem; border-radius: 12px; padding: 8px 12px; text-align: start; width: 100%; }
 .act.is-done { border-color: var(--line); background: var(--beige); color: var(--muted); }
@@ -713,7 +713,7 @@ select.input { appearance: auto; }
 
 /* التواريخ والمعادلات من اليسار لليمين داخل النص العربي */
 input[type="date"] { direction: ltr; text-align: right; }
-bdi.math { font-family: 'IBM Plex Sans Arabic', ui-monospace, monospace; white-space: nowrap; }
+bdi.math { font-family: 'IBM Plex Sans Arabic', ui-monospace, monospace; }
 .focus__step { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .stepper { display: inline-flex; align-items: center; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; }
 .stepper button { border: 0; background: var(--cream); color: var(--heading); font: inherit; font-weight: 700; width: 38px; height: 34px; }
@@ -724,3 +724,12 @@ bdi.math { font-family: 'IBM Plex Sans Arabic', ui-monospace, monospace; white-s
 .actions--center { justify-content: center; }
 .task small { display: block; }
 .goal .chip, .plan-card .chip { justify-self: start; }
+
+/* نصوص طويلة (روابط وكلمات) ما تدفع الصفحة للجنب */
+body { overflow-wrap: anywhere; }
+.slot__card.slot--free { padding: 14px; }
+.lvl--good { color: var(--heading); }
+.leaders li.me .rank { color: var(--heading); }
+.news--soft .eyebrow--light { color: var(--heading); }
+.slot__more.is-armed { color: #b3261e; font-size: 0.8rem; font-weight: 700; }
+.warn { background: var(--pink-soft); color: var(--heading); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.85rem; }

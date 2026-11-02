@@ -22,6 +22,18 @@ const relDay = (iso) => {
   return fmtDate(iso);
 };
 
+// نصغّر صورة السؤال قبل نرسلها (أسرع وأقل من حد الحجم)
+async function compressImage(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const out = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.85));
+    return out && out.size < file.size ? out : file;
+  } catch { return file; }
+}
 async function blobToB64(blob) {
   const buf = new Uint8Array(await blob.arrayBuffer());
   let bin = '';
@@ -88,14 +100,38 @@ const TEACHERS = [
   { id: 't2', name: 'أ. فهد القحطاني', role: 'معلم الفيزياء', subject: 'فيزياء' },
   { id: 't3', name: 'أ. ماجد الشهري', role: 'معلم الكيمياء', subject: 'كيمياء' },
   { id: 't4', name: 'أ. خالد الدوسري', role: 'معلم الإنجليزي', subject: 'إنجليزي' },
+  { id: 't5', name: 'أ. بندر الغامدي', role: 'معلم الأحياء', subject: 'أحياء' },
+  { id: 't6', name: 'أ. ياسر الشمري', role: 'معلم لغتي', subject: 'لغتي' },
 ];
 const STAFF = [
   { id: 'a1', name: 'أ. عبدالعزيز المطيري', role: 'مدير المدرسة' },
   { id: 'a2', name: 'أ. نايف الحربي', role: 'وكيل شؤون الطلاب' },
   { id: 'a3', name: 'أ. سعد الزهراني', role: 'المرشد الطلابي' },
 ];
-const classmates = () => BOYS.slice(0, 12).map((n, k) => ({ id: 's' + k, name: n, role: `طالب ${myClass()}` }));
-const me = () => ({ id: 'me', name: profile?.name || 'أنت', role: role() === 'student' ? `طالب ${myClass()}` : ROLES[role()]?.label || '' });
+// زملاء الفصل (بدون اسم الطالب نفسه عشان ما يتكرر)
+const classmates = () => BOYS.map((n, k) => ({ id: 's' + k, name: n, role: `طالب ${myClass()}` })).filter((p) => p.name !== db.get('studentName', '')).slice(0, 12);
+const boardNames = () => BOYS.filter((n) => n !== (profile?.name || db.get('studentName', '')));
+const me = () => ({ id: myId(), name: profile?.name || 'أنت', role: role() === 'student' ? `طالب ${myClass()}` : ROLES[role()]?.label || '' });
+// هويات الحسابات على نفس الجهاز (تجريبي)
+const STUDENT_ID = 'me-student';
+const PARENT_ID = 'parent';
+const ADMIN_IDS = { 'مدير المدرسة': 'a1', 'وكيل المدرسة': 'a2', 'المرشد الطلابي': 'a3' };
+const myTeacherId = () => (TEACHERS.find((t) => t.subject === profile?.subject) || TEACHERS[0]).id;
+function myId() {
+  const r = role();
+  if (r === 'student') return STUDENT_ID;
+  if (r === 'teacher') return myTeacherId();
+  if (r === 'admin') return ADMIN_IDS[profile?.position] || 'a1';
+  return PARENT_ID;
+}
+function person(id) {
+  const names = db.get('names', {});
+  const studentName = db.get('studentName', 'عبدالله');
+  if (id === STUDENT_ID) return { id, name: studentName, role: `طالب ${myClass()}` };
+  if (id === PARENT_ID) return { id, name: names[id] || 'ولي الأمر', role: `ولي أمر ${studentName}` };
+  const p = [...TEACHERS, ...STAFF, ...classmates()].find((x) => x.id === id);
+  return p ? { ...p, name: names[id] || p.name } : { id, name: 'مستخدم', role: '' };
+}
 
 /* =========================================================
    البيانات التجريبية (تنزرع أول مرة بس)
@@ -105,6 +141,7 @@ function seed() {
   const t = new Date();
   db.set('schoolTasks', [
     { id: uid(), title: 'رياضيات: حل تمارين الوحدة ٣ وسلّمها', subject: 'رياضيات', kind: 'واجب', due: isoDate(t), by: 't1' },
+    { id: uid(), title: 'إنجليزي: كتابة فقرة عن هواياتك', subject: 'إنجليزي', kind: 'واجب', due: isoDate(addDays(-2)), by: 't4' },
     { id: uid(), title: 'اختبار فيزياء قصير: الفصل الثالث', subject: 'فيزياء', kind: 'اختبار', due: isoDate(addDays(1)), by: 't2' },
     { id: uid(), title: 'كيمياء: تقرير المختبر (المقدمة والنتائج)', subject: 'كيمياء', kind: 'واجب', due: isoDate(addDays(3)), by: 't3' },
   ]);
@@ -129,16 +166,16 @@ function seed() {
     { id: uid(), group: 'class', author: 'تركي', role: `طالب ${myClass()}`, kind: 'ملف', text: 'نماذج قدرات كمي حليتها مع الحل، ٢٠ سؤال.', link: '', likes: 9, liked: false, comments: [], at: Date.now() - 26 * 36e5 },
   ]);
   db.set('threads', [
-    { id: 'g-class', owner: 'student', group: true, name: `قروب ${myClassName()}`, role: 'طلاب الفصل والمشرف بس', msgs: [
-      { from: 'فيصل', text: 'شباب لا تنسون واجب الرياضيات الليلة', at: Date.now() - 3 * 36e5 },
-      { from: 'نواف', text: 'أحد خلص تقرير الكيمياء؟', at: Date.now() - 2 * 36e5 },
-      { from: 'عمر', text: 'باقي لي النتائج بس 👍', at: Date.now() - 1.5 * 36e5 },
+    { id: 'g-class', group: true, name: `قروب ${myClassName()}`, msgs: [
+      { from: 's0', text: 'شباب لا تنسون واجب الرياضيات الليلة', at: Date.now() - 3 * 36e5 },
+      { from: 's6', text: 'أحد خلص تقرير الكيمياء؟', at: Date.now() - 2 * 36e5 },
+      { from: 's7', text: 'باقي لي النتائج بس 👍', at: Date.now() - 1.5 * 36e5 },
     ] },
-    { id: 'dm-t2', owner: 'student', with: 't2', name: 'أ. فهد القحطاني', role: 'معلم الفيزياء', msgs: [
-      { from: 'أ. فهد القحطاني', text: 'أهلاً، أي سؤال عن الاختبار القصير أنا موجود.', at: Date.now() - 20 * 36e5 },
+    { id: 'dm-me-student-t2', members: [STUDENT_ID, 't2'], msgs: [
+      { from: 't2', text: 'أهلاً، أي سؤال عن الاختبار القصير أنا موجود.', at: Date.now() - 20 * 36e5 },
     ] },
-    { id: 'dm-a3', owner: 'student', with: 'a3', name: 'أ. سعد الزهراني', role: 'المرشد الطلابي', msgs: [
-      { from: 'أ. سعد الزهراني', text: 'مرحبا، لو تحتاج مساعدة في اختيار التخصص كلمني.', at: Date.now() - 48 * 36e5 },
+    { id: 'dm-a3-me-student', members: [STUDENT_ID, 'a3'], msgs: [
+      { from: 'a3', text: 'مرحبا، لو تحتاج مساعدة في اختيار التخصص كلمني.', at: Date.now() - 48 * 36e5 },
     ] },
   ]);
   db.set('feedback', [
@@ -149,8 +186,16 @@ function seed() {
 }
 
 const DEFAULT_PRIZES = ['قسيمة شرائية بقيمة ٢٠٠ ريال', 'قسيمة مكتبة بقيمة ١٠٠ ريال', 'شهادة تميّز من مدير المدرسة'];
-// جوائز تخالف تعليمات وزارة التعليم (غياب، خروج، إعفاء، درجات…)
-const BAD_PRIZE = /خروج|غياب|إعفاء|اعفاء|استئذان|درج(ة|ات) (إضافية|اضافية|زيادة)|بدون (واجب|اختبار)|تأخير|إجازة|اجازة/;
+// جوائز تخالف تعليمات وزارة التعليم (غياب، خروج/انصراف، إعفاء، درجات إضافية، إلغاء أو تأجيل اختبار…)
+const normAr = (t) => String(t || '').toLowerCase().replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+const BAD_PRIZE_RE = new RegExp([
+  'خروج', 'انصراف', 'مغادره', 'مبكر', 'طلعه', 'بدري', 'يطلع', 'غياب', 'يغيب', 'غيبه', 'اعفاء', 'معفي', 'يعفي', 'استئذان', 'اذن',
+  'درجه', 'درجات', 'علامه', 'علامات', 'بونص', 'الغاء', 'تاجيل', 'فراغ', 'اجازه', 'راحه من',
+  'بدون واجب', 'بدون اختبار', 'تاخير', 'early', 'leave', 'absen', 'skip', 'bonus', 'mark', 'grade', 'day off', 'exempt',
+].join('|'));
+// «شهادة تقدير لعدم الغياب» مسموحة
+const badPrize = (t) => BAD_PRIZE_RE.test(normAr(t).replace(/(عدم|بدون) (ال)?غياب/g, '').replace(/الانضباط/g, ''));
+const BAD_PRIZE = { test: badPrize };
 
 // تحديث البيانات القديمة المحفوظة في المتصفح
 function migrate() {
@@ -161,11 +206,27 @@ function migrate() {
     posts.forEach((x) => { if (x.author === 'أ. فهد القحطاني') { x.author = 'أ. سعد الزهراني'; x.role = 'المرشد الطلابي (مشرف)'; } });
     db.set('posts', posts);
   }
+  // الرسائل: نحوّلها لصيغة فيها الطرفين عشان توصل للثاني
+  const ID_RE = /^(s\d+|me-student|a\d|t\d|parent)$/;
   const threads = db.get('threads', null);
-  if (threads && threads.some((t) => !t.owner)) {
-    threads.forEach((t) => { t.owner = t.owner || 'student'; if (t.group) t.role = 'طلاب الفصل والمشرف بس'; });
-    db.set('threads', threads);
+  if (threads && threads.some((t) => (!t.group && !t.members) || (t.group && t.msgs.some((m) => !ID_RE.test(m.from))))) {
+    const byName = (n) => (classmates().find((c) => c.name === n) || {}).id || STUDENT_ID;
+    const out = threads.map((t) => {
+      if (t.group) return { id: t.id, group: true, name: t.name, msgs: t.msgs.map((m) => ({ ...m, from: ID_RE.test(m.from) ? m.from : byName(m.from) })) };
+      if (t.members) return t;
+      const other = t.with;
+      return { id: `dm-${[STUDENT_ID, other].sort().join('-')}`, members: [STUDENT_ID, other], msgs: t.msgs.map((m) => ({ ...m, from: m.from === t.name ? other : STUDENT_ID })) };
+    });
+    db.set('threads', out);
   }
+  // اللي أضافه المعلم كان محفوظ باسم «me» — نربطه بمعلم المادة
+  const subj2t = (sub) => (TEACHERS.find((x) => x.subject === sub) || TEACHERS[0]).id;
+  for (const k of ['schoolTasks', 'resources']) {
+    const l = db.get(k, null);
+    if (l && l.some((x) => x.by === 'me')) { l.forEach((x) => { if (x.by === 'me') x.by = subj2t(x.subject); }); db.set(k, l); }
+  }
+  const prizes2 = db.get('prizes', null);
+  if (prizes2 && prizes2.some((x) => x && badPrize(x))) db.set('prizes', DEFAULT_PRIZES);
 }
 
 function getSchoolTasks() {
@@ -195,20 +256,34 @@ function studyDaysOf(a) {
   return order.slice(0, n).sort((x, y) => x - y);
 }
 
+const examOf = (a, k) => (a[k + 'Exam'] && a[k + 'Exam'] >= todayISO() ? a[k + 'Exam'] : defaultExam(a, k));
+// الدورات مرتبة حسب أقرب اختبار
+const courseKinds = (a) => ['qud', 'tah'].filter((k) => hasCourseSrc(a, k) && (k === 'qud' || a.grade >= 2)).sort((x, y) => examOf(a, x).localeCompare(examOf(a, y)));
+// لو ما حدد موعد الاختبار: القدرات/التحصيلي عادةً في ثالث ثانوي
+function defaultExam(a, k) {
+  if (a.grade === 3) return isoDate(addDays(k === 'qud' ? 75 : 120));
+  return isoDate(new Date(timeline(a.grade).end.getTime() - (k === 'qud' ? 240 : 150) * 864e5));
+}
 function coursePlan(a, k) {
   if (!hasCourseSrc(a, k)) return null;
   const total = courseTotal(a, k);
   const reached = courseReached(a, k);
   const remaining = Math.max(0, total - reached);
-  const exam = a[k + 'Exam'] && daysBetween(todayISO(), a[k + 'Exam']) > 3 ? a[k + 'Exam'] : isoDate(addDays(75));
-  const daysLeft = daysBetween(todayISO(), exam);
-  const review = daysLeft >= 45 ? 14 : daysLeft >= 21 ? 7 : Math.max(2, Math.floor(daysLeft * 0.2));
-  const studyCal = Math.max(1, daysLeft - review);
+  const given = !!a[k + 'Exam'] && a[k + 'Exam'] >= todayISO();
+  const exam = examOf(a, k);
+  const daysLeft = Math.max(0, daysBetween(todayISO(), exam));
+  // لو فيه اختبار ثاني قبله، دروس هذي الدورة تبدأ بعده
+  const kinds = courseKinds(a);
+  const prev = kinds.indexOf(k) > 0 ? examOf(a, kinds[kinds.indexOf(k) - 1]) : null;
+  const startOffset = prev && prev < exam ? Math.max(0, daysBetween(todayISO(), prev) + 1) : 0;
+  const span = Math.max(0, daysLeft - startOffset);
+  const review = span >= 45 ? 14 : span >= 21 ? 7 : Math.floor(span * 0.2);
+  const studyCal = Math.max(1, span - review);
   const studyDays = Math.max(1, Math.floor(studyCal * (studyDaysOf(a).length / 7)));
   const perDay = remaining ? Math.max(1, Math.ceil(remaining / studyDays)) : 0;
   return {
-    kind: k, source: sourceOf(a, k), total, reached, remaining, perDay, exam,
-    examGiven: !!a[k + 'Exam'], finish: isoDate(addDays(studyCal)), reviewDays: review, estimated: !a[k + 'Total'],
+    kind: k, source: sourceOf(a, k) || (k === 'qud' ? 'دورة القدرات' : 'دورة التحصيلي'), total, reached, remaining, perDay, exam, daysLeft,
+    examGiven: given, finish: isoDate(addDays(Math.min(startOffset + studyCal, daysLeft))), startsAfter: startOffset ? isoDate(addDays(startOffset)) : '', reviewDays: review, estimated: !a[k + 'Total'],
   };
 }
 const coursePlanText = (a, k) => {
@@ -218,24 +293,33 @@ const coursePlanText = (a, k) => {
 };
 
 // مهمة الدورة لهاليوم من أيام الأسبوع: أرقام الدروس بالضبط
+// هل خلّص جلسة الدورة (k) في يوم d من هالأسبوع؟
+function courseDoneOn(d, k) {
+  if (!state.plan) return false;
+  const date = isoDate(weekDates()[d]);
+  return state.plan.week[d].blocks.some((b) => b.course === k && state.done[`${date}|${b.id}`]);
+}
 function courseTask(a, d, min) {
-  const kinds = ['qud', 'tah'].filter((k) => coursePlan(a, k) && (k === 'qud' || a.grade >= 2));
+  const kinds = courseKinds(a);
   if (!kinds.length || !studyDaysOf(a).includes(d)) return null;
   const today = new Date().getDay();
   const sd = studyDaysOf(a);
-  const k = kinds[sd.indexOf(d) % kinds.length];
+  const dayISO = isoDate(weekDates()[d]);
+  const k = kinds.find((x) => examOf(a, x) >= dayISO) || kinds[kinds.length - 1];
   const p = coursePlan(a, k);
   const label = k === 'qud' ? 'قدرات' : 'تحصيلي';
-  if (!p.remaining || todayISO() > p.finish) return { title: `${label}: مراجعة ونماذج في ${p.source}`, note: `فترة المراجعة قبل الاختبار (${relDay(p.exam)})`, minutes: min, type: 'exam' };
-  // كم يوم دراسي لهالنوع قبل هاليوم في هالأسبوع (من اليوم وطالع)
-  const before = sd.filter((x) => x >= today && x < d && kinds[sd.indexOf(x) % kinds.length] === k).length;
-  if (d < today) return { title: `${label}: دروس ${p.source}`, minutes: min, type: 'exam' };
+  if (!p.remaining || todayISO() > p.finish) return { course: k, lessons: 0, title: `${label}: مراجعة ونماذج في ${p.source}`, note: `فترة المراجعة قبل الاختبار (${relDay(p.exam)})`, minutes: min, type: 'exam' };
+  if (d < today) return { course: k, lessons: 0, title: `${label}: دروس ${p.source}`, minutes: min, type: 'exam' };
+  // الأيام اللي قبله (من اليوم) وما خلّصها للحين
+  const owner = (x) => kinds.find((y) => examOf(a, y) >= isoDate(weekDates()[x])) || kinds[kinds.length - 1];
+  const before = sd.filter((x) => x >= today && x < d && owner(x) === k && !courseDoneOn(x, k)).length;
   const from = p.reached + before * p.perDay + 1;
   const to = Math.min(p.total, from + p.perDay - 1);
-  if (from > p.total) return { title: `${label}: مراجعة ما خلصته في ${p.source}`, minutes: min, type: 'exam' };
+  if (from > p.total) return { course: k, lessons: 0, title: `${label}: مراجعة ما خلصته في ${p.source}`, minutes: min, type: 'exam' };
   return {
+    course: k, lessons: to - from + 1,
     title: `${label}: خلّص ${from === to ? `الدرس ${ar(from)}` : `الدروس ${ar(from)}–${ar(to)}`} في ${p.source}`,
-    note: `${lessonsTxt(to - from + 1)} • باقي ${lessonsTxt(Math.max(0, p.total - to))} • حل تمارين كل درس`,
+    note: `${lessonsTxt(to - from + 1)} • باقي ${lessonsTxt(Math.max(0, p.total - to))} بعدها • حل تمارين كل درس`,
     minutes: Math.max(min, Math.min(120, (to - from + 1) * 15)), type: 'exam',
   };
 }
@@ -271,10 +355,12 @@ function coursesCard(a) {
           <div class="course card">
             <div class="course__head"><strong>${p.kind === 'qud' ? 'القدرات' : 'التحصيلي'} • ${esc(p.source)}</strong><span class="tag tag--coral">${lessonsTxt(p.perDay)} باليوم</span></div>
             <div class="gap__bar"><span class="gap__now" style="width:${Math.round((p.reached / p.total) * 100)}%"></span></div>
+            ${p.perDay > 6 ? `<p class="warn">⚠️ الوقت قصير: ${lessonsTxt(p.perDay)} باليوم كثير. زد أيام المذاكرة، أو ركّز على أهم الدروس والنماذج.</p>` : ''}
+            ${p.startsAfter ? `<p class="field__hint">تبدأ دروسها بعد اختبارك الأقرب (${fmtDate(p.startsAfter)}).</p>` : ''}
             <ul class="course__facts">
               <li><span>الدروس</span><b>${ar(p.reached)} / ${ar(p.total)}${p.estimated ? ' (تقديري)' : ''}</b></li>
               <li><span>تخلّص الدروس</span><b>${fmtDate(p.finish)}</b></li>
-              <li><span>المراجعة</span><b>آخر ${ar(p.reviewDays)} يوم</b></li>
+              <li><span>المراجعة</span><b>${p.reviewDays ? `آخر ${daysTxt(p.reviewDays)}` : 'ما فيه وقت للمراجعة'}</b></li>
               <li><span>الاختبار</span><b>${fmtDate(p.exam)}${p.examGiven ? '' : ' (تقريبي)'}</b></li>
             </ul>
           </div>`).join('')}
@@ -351,14 +437,22 @@ function renderChrome() {
 const HERO_MORE = {
   community: ['المجتمع', 'شارك وتعلّم مع زملائك'], messages: ['الرسائل', 'زملاؤك ومعلموك والإدارة'], resources: ['المصادر', 'كل اللي نزّله معلموك'],
   grades: ['مستواي', 'درجاتك ومستواك في كل مادة'], rewards: ['المحفزات', 'نقاطك، غابتك، وشاراتك'], feedback: ['اقتراحات للمعلمين', 'ساعد معلمك يطوّر الشرح'],
-  more: ['المزيد', 'كل خانات وشيجة'], 't-tasks': ['الواجبات والاختبارات', 'تطلع لطلابك مباشرة'], 't-resources': ['المصادر', 'ملفات وروابط وفيديوهات لطلابك'],
+  more: ['المزيد', 'كل خانات وشيجة'], news: ['أخبار المدرسة', 'الأخبار والمسابقات والإعلانات'], 't-tasks': ['الواجبات والاختبارات', 'تطلع لطلابك مباشرة'], 't-resources': ['المصادر', 'ملفات وروابط وفيديوهات لطلابك'],
   't-students': ['مستوى طلابي', 'حدّد مستوى كل طالب في مادتك'], 't-feedback': ['اقتراحات الطلاب', 'وش يقولون عن الشرح'], 'a-news': ['الأخبار والمسابقات', 'تطلع للطلاب وأولياء الأمور'],
   'a-reports': ['تقارير المدرسة', 'نظرة سريعة على المدرسة'], 'a-prizes': ['جوائز المنافسة', 'وش يكسب الأوائل'], 'p-child': ['مستوى ولدي', ''],
 };
 
+const ALLOWED = {
+  student: ['home', 'plan', 'schedule', 'ai', 'board', 'community', 'messages', 'resources', 'grades', 'rewards', 'feedback', 'more', 'news'],
+  teacher: ['home', 't-tasks', 't-resources', 't-students', 't-feedback', 'messages', 'ai'],
+  parent: ['home', 'p-child', 'messages', 'ai', 'news'],
+  admin: ['home', 'a-news', 'a-prizes', 'a-reports', 'community', 'messages', 'ai', 'board'],
+};
+const can = (route) => (ALLOWED[role()] || []).includes(route);
 function show() {
   if (!profile) { renderWelcome(); return; }
   $('[data-welcome]').hidden = true;
+  if (!can(currentRoute())) history.replaceState(null, '', '#home');
   const route = currentRoute();
   const r = role();
   const own = { plan: 'plan', schedule: 'schedule', ai: 'ai', board: 'board' };
@@ -374,12 +468,17 @@ function show() {
     $('[data-hero-sub]').textContent = `${DAYS[new Date().getDay()]} • ${r === 'teacher' ? `معلم ${profile.subject}` : ROLES[r].label}`;
   } else if (HERO_MORE[route]) {
     $('[data-hero-title]').textContent = HERO_MORE[route][0];
-    $('[data-hero-sub]').textContent = route === 'p-child' ? (profile.child || 'ولدك') : HERO_MORE[route][1];
+    $('[data-hero-sub]').textContent = route === 'p-child' ? (profile.child || 'ولدك')
+      : route === 'messages' ? { student: 'زملاؤك ومعلموك والإدارة', teacher: 'طلابك وزملاؤك والإدارة', parent: 'المعلمين والإدارة', admin: 'الطلاب والمعلمين' }[r]
+        : HERO_MORE[route][1];
+  } else if (route === 'ai' && r !== 'student') {
+    $('[data-hero-title]').textContent = 'المساعد الذكي';
+    $('[data-hero-sub]').textContent = { teacher: 'يساعدك تجهّز دروسك وواجباتك', parent: 'يساعدك تدعم ولدك', admin: 'يساعدك تدير المدرسة' }[r];
   } else {
     renderHero(route);
     if (route === 'home' && profile.name) {
       const g = new Date().getHours() < 12 ? 'صباح الخير' : 'مساء الخير';
-      $('[data-hero-title]').textContent = `${g}، ${state.answers?.name?.trim() || profile.name}`;
+      $('[data-hero-title]').textContent = `${g}، ${profile.name}`;
       $('[data-hero-sub]').textContent = `${DAYS[new Date().getDay()]} • طالب ${myClass()}`;
     }
   }
@@ -444,9 +543,22 @@ function enter(e) {
   if (r === 'admin') profile.position = simpleVal('w-pos') || 'مدير المدرسة';
   db.set('profile', profile);
   seed();
+  migrate();
+  if (r === 'student') {
+    const prev = db.get('studentName', null);
+    if (prev && prev !== name && state.answers) {
+      for (const k of ['answers', 'plan', 'done', 'tasks', 'exams', 'moves', 'chat:student', 'focusMinutes', 'focusLog', 'trees', 'streak', 'submitted', 'registered', 'focusRun']) store.set(k, null);
+      state.answers = null; state.plan = null; state.done = {}; state.draft = null; state.editing = false; state.step = 0;
+      focus = null; clearInterval(focusTick);
+    }
+    db.set('studentName', name);
+  }
+  if (r === 'parent') db.set('studentName', profile.child);
+  if (r !== 'student') { const n = db.get('names', {}); n[myId()] = name; db.set('names', n); }
   // الطالب: نعبّي اسمه وصفه في الخطة لو ما عنده خطة
   if (r === 'student' && !state.answers) state.draftPreset = { name, grade: profile.grade };
   chat.turns = db.get('chat:' + r, []);
+  state.thread = null;
   renderChrome();
   location.hash = 'home';
   show();
@@ -459,7 +571,11 @@ function enter(e) {
 function todayItems() {
   const items = [];
   const sub = db.get('submitted', []);
-  for (const t of getSchoolTasks().filter((x) => x.due >= todayISO()).slice(0, 4)) {
+  // واجبات متأخرة ما تسلّمت (آخر أسبوعين)
+  for (const t of db.get('schoolTasks', []).filter((x) => x.kind === 'واجب' && x.due < todayISO() && daysBetween(x.due, todayISO()) <= 14 && !sub.includes(x.id))) {
+    items.push({ id: t.id, hw: true, done: false, title: t.title, sub: `متأخر • كان التسليم ${relDay(t.due)}`, tag: 'متأخر', tone: 'maroon' });
+  }
+  for (const t of getSchoolTasks().filter((x) => x.due >= todayISO() && daysBetween(todayISO(), x.due) <= 7)) {
     items.push({ id: t.id, hw: t.kind === 'واجب', done: sub.includes(t.id), title: t.title, sub: t.note, tag: t.kind, tone: t.kind === 'اختبار' ? 'maroon' : 'coral' });
   }
   for (const x of db.get('exams', []).filter((x) => x.date >= todayISO() && daysBetween(todayISO(), x.date) <= 14)) {
@@ -476,13 +592,13 @@ function renderStudentHome() {
   $('[data-today]').innerHTML = items.length ? items.map((t) => `
     <li class="task task--${t.tone}"><div><strong>${esc(t.title)}</strong><small>${esc(t.sub)}</small>${t.hw ? `<button type="button" class="submit-btn${t.done ? ' is-done' : ''}" data-submit="${t.id}">${t.done ? '✓ سلّمته' : 'سلّمته؟'}</button>` : ''}</div><span class="tag tag--${t.tone}">${esc(t.tag)}</span></li>`).join('')
     : '<li class="empty">ما عندك شي اليوم 🎉</li>';
-  $('[data-today-count]').textContent = `${ar(items.length)} مهام`;
-  const news = db.get('news', []).slice(0, 2);
+  $('[data-today-count]').textContent = items.length ? countTxt(items.length, 'مهمة وحدة', 'مهمتين', 'مهام', 'مهمة') : '';
+  const news = db.get('news', []).slice(0, 3);
   $('[data-news]').innerHTML = news.map((n, k) => `
     <div class="news${k ? ' news--soft' : ''}">
-      <div><span class="eyebrow eyebrow--light">${esc(n.kind)}</span><h3>${esc(n.title)}</h3><p>${esc(n.body)}${n.deadline ? ` • حتى ${fmtDate(n.deadline)}` : ''}</p></div>
+      <div><span class="eyebrow eyebrow--light">${esc(n.kind)}</span><h3>${esc(n.title)}</h3><p>${bidi(esc(n.body))}${n.deadline ? ` • حتى ${fmtDate(n.deadline)}` : ''}</p></div>
       ${n.kind === 'مسابقة' ? `<button class="btn btn--white btn--sm" type="button" data-register="${n.id}">${db.get('registered', []).includes(n.id) ? 'مسجّل ✓' : 'سجّل'}</button>` : ''}
-    </div>`).join('');
+    </div>`).join('') + (db.get('news', []).length > 3 ? '<a class="link link--block" href="#news" data-route="news">كل الأخبار ←</a>' : '');
   // هذا الأسبوع (من بياناتك الفعلية)
   const week = weekDates().map(isoDate);
   const hw = db.get('schoolTasks', []).filter((x) => x.kind === 'واجب' && week.includes(x.due));
@@ -490,11 +606,11 @@ function renderStudentHome() {
   const exams = getSchoolTasks().filter((x) => x.kind === 'اختبار' && x.due >= todayISO()).length + db.get('exams', []).filter((x) => x.date >= todayISO() && daysBetween(todayISO(), x.date) <= 14).length;
   const grades = Object.values(db.get('grades', {})).flat();
   const avg = grades.length ? Math.round((grades.reduce((a, b) => a + b, 0) / (grades.length * 20)) * 100) : 0;
-  const hours = Math.round(((store.get('focusMinutes') || 0) / 60) * 10) / 10;
+  const hours = Math.round((weekFocusMinutes() / 60) * 10) / 10;
   $('[data-stats]').innerHTML = `
     <div class="stat"><small>الواجبات المسلّمة</small><strong>${ar(doneHw)} / ${ar(hw.length)}</strong></div>
     <div class="stat"><small>اختبارات قادمة</small><strong>${ar(exams)}</strong></div>
-    <div class="stat"><small>ساعات التركيز</small><strong>${ar(String(hours).replace('.', '٫'))}</strong></div>
+    <div class="stat"><small>ساعات التركيز هالأسبوع</small><strong>${ar(hours)}</strong></div>
     <div class="stat"><small>معدل درجاتك</small><strong>${ar(avg)}٪</strong></div>`;
   renderBoard(boardKind);
   drawTimer();
@@ -514,10 +630,33 @@ function ensureIds() {
   if (changed) store.set('plan', state.plan);
 }
 
+// التعويض يكون لهالأسبوع بس (ما يغيّر جدول الأسابيع الجاية)
+const weekKey = () => isoDate(weekDates()[0]);
+const weekMoves = () => (db.get('moves', {})[weekKey()] || []);
+const findPlanBlock = (id) => { for (const day of state.plan?.week || []) { const b = day.blocks.find((x) => x.id === id); if (b) return b; } return null; };
+function livePlanBlock(b, d, dateISO) {
+  const rec = state.done[`${dateISO}|${b.id}`];
+  if (rec && typeof rec === 'object' && rec.t) return { ...b, title: rec.t, note: rec.note || b.note };
+  if (b.course && state.answers) {
+    const live = courseTask(state.answers, d, b.minutes);
+    if (live && live.course === b.course) return { ...b, title: live.title, note: live.note, lessons: live.lessons };
+  }
+  return b;
+}
 function dayBlocks(d, dateISO) {
-  const plan = state.plan ? state.plan.week[d].blocks.map((b) => ({ ...b, src: 'plan' })) : [];
+  const moves = weekMoves();
+  const movedAway = new Set(moves.filter((m) => m.from === d).map((m) => m.id));
+  let plan = state.plan ? state.plan.week[d].blocks.filter((b) => !movedAway.has(b.id)).map((b) => ({ ...livePlanBlock(b, d, dateISO), src: 'plan' })) : [];
+  for (const m of moves.filter((x) => x.to === d)) {
+    const orig = findPlanBlock(m.id);
+    if (orig) plan.push({ ...livePlanBlock(orig, m.from, dateISO), start: m.start, note: m.note, src: 'plan', moved: true });
+  }
   const custom = customForDay(d, dateISO).map((t) => ({ ...t, src: 'mine' }));
   return [...plan, ...custom].sort((x, y) => x.start - y.start || (x.type === 'free') - (y.type === 'free'));
+}
+// فيه جلسة ثانية بنفس الوقت؟
+function clashWith(d, dateISO, start, minutes, ignoreId) {
+  return dayBlocks(d, dateISO).find((b) => b.type !== 'free' && b.id !== ignoreId && start < b.start + b.minutes && b.start < start + minutes);
 }
 
 function renderSchedule() {
@@ -546,7 +685,7 @@ function renderSchedule() {
     ${!state.plan ? `<section class="note">${icon('plan')} ما عندك خطة للحين. تقدر تضيف مهامك بنفسك، أو <a href="#plan" data-route="plan"><b>سوّ خطتك</b></a> وبيتسوى لك جدول كامل.</section>` : ''}
 
     ${exams.map((x) => `<section class="reminder">${icon('ask')}<div><strong>تذكير: اختبار ${esc(x.subject)} ${relDay(x.date)}</strong>${x.note ? `<small>${esc(x.note)}</small>` : ''}</div><button type="button" class="slot__more" data-edit-exam="${x.id}" aria-label="عدّل الاختبار">⋯</button></section>`).join('')}
-    ${due.map((x) => `<section class="reminder reminder--soft">${icon('grades')}<div><strong>${esc(x.title)}</strong><small>${esc(x.kind)} من المعلم • ${esc(x.note)}</small></div></section>`).join('')}
+    ${due.map((x) => `<section class="reminder reminder--soft">${icon('grades')}<div><strong>${esc(x.title)}</strong><small>${esc(x.kind)} من ${esc(person(x.by).name)} • ${x.kind === 'اختبار' ? 'الاختبار' : 'التسليم'} يوم ${DAYS[new Date(x.due).getDay()]}</small></div></section>`).join('')}
 
     <section class="block">
       <div class="block__head">
@@ -564,7 +703,7 @@ function renderSchedule() {
               : `<div class="slot__card slot--${b.type}${done ? ' is-done' : ''}">
                   <button type="button" class="slot__main" aria-pressed="${done}" data-slot="${b.id}">
                     <span class="slot__check">${icon('check')}</span>
-                    <span><strong>${esc(b.title)}</strong>${b.note ? `<em>${esc(b.note)}</em>` : ''}<small>${fmtDuration(b.minutes)}${b.src === 'mine' ? ` • مهمتي${b.repeat ? ' (كل أسبوع)' : ''}` : ' • من الخطة'}</small></span>
+                    <span><strong>${bidi(esc(b.title))}</strong>${b.note ? `<em>${bidi(esc(b.note))}</em>` : ''}<small>${fmtDuration(b.minutes)}${b.src === 'mine' ? ` • مهمتي${b.repeat ? ' (كل أسبوع)' : ''}` : ' • من الخطة'}</small></span>
                   </button>
                   <button type="button" class="slot__ask" aria-label="اسأل المساعد عن هذي الجلسة" data-ask-slot="${b.id}">${icon('ai')}</button>
                   <button type="button" class="slot__more" aria-label="عدّل" data-edit-slot="${b.id}" data-src="${b.src}">⋯</button>
@@ -688,7 +827,7 @@ function drawTimer() {
       <div class="focus__btns"><button class="btn btn--ghost" type="button" data-giveup>استسلم</button></div>`;
     tickTimer();
   } else {
-    $('[data-timer]').textContent = ar(`${String(focusPick).padStart(2, '0')}:00`);
+    $('[data-timer]').textContent = clockTxt(focusPick * 60);
     $('[data-timer-label]').textContent = 'اختر المدة';
     ring.style.strokeDashoffset = 0;
     const trees = db.get('trees', 0);
@@ -703,13 +842,21 @@ function drawTimer() {
   }
 }
 // يحدّث الوقت والدائرة بس (بدون ما يعيد بناء الأزرار عشان الضغط ما يضيع)
+const clockTxt = (sec) => {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), x = sec % 60;
+  return ar(h ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}`);
+};
+// دقايق التركيز في هالأسبوع (للمنافسة الأسبوعية)
+function weekFocusMinutes() {
+  const start = weekKey();
+  return db.get('focusLog', []).filter((x) => x.d >= start).reduce((a, x) => a + x.m, 0);
+}
 function tickTimer() {
   if (!focus) return;
   const leftS = Math.max(0, Math.ceil((focus.endAt - Date.now()) / 1000));
-  const h = Math.floor(leftS / 3600), m = Math.floor((leftS % 3600) / 60), s = leftS % 60;
   const t = $('[data-timer]');
   if (t) {
-    t.textContent = ar(h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    t.textContent = clockTxt(leftS);
     $('[data-timer-label]').textContent = 'نبتتك تكبر 🌱';
     $('[data-ring]').style.strokeDashoffset = CIRC * (leftS / (focus.minutes * 60));
   }
@@ -735,10 +882,10 @@ function finishFocus() {
   const grown = Math.floor(total / 25) - Math.floor((store.get('focusMinutes') || 0) / 25);
   db.set('trees', db.get('trees', 0) + grown);
   store.set('focusMinutes', total);
+  const log = db.get('focusLog', []); log.push({ d: todayISO(), m: mins }); db.set('focusLog', log.slice(-200));
   bumpStreak();
   toast(grown ? `أحسنت! زرعت ${grown === 1 ? 'شجرة' : grown === 2 ? 'شجرتين' : `${ar(grown)} أشجار`} 🌳 وزاد ترتيبك بالمنافسة` : `أحسنت! ${fmtDuration(mins)} تركيز 👏 باقي ${fmtDuration(25 - (total % 25))} على الشجرة الجاية`);
-  renderBoard(boardKind);
-  drawTimer();
+  if (!$('[data-view="home"]').hidden && role() === 'student') renderStudentHome(); else { renderBoard(boardKind); drawTimer(); }
 }
 function giveUp() {
   openSheet(`
@@ -767,7 +914,7 @@ function pointsBreakdown() {
   const hw = db.get('submitted', []).length;
   const items = [
     ['جلسات خلّصتها من جدولك', doneTasks, 10],
-    ['أيام متتالية (ستريك)', streak, 15],
+    ['أيام متتالية «ستريك»', streak, 15],
     ['كل ٥ دقايق تركيز', Math.floor(minutes / 5), 1],
     ['واجبات سلّمتها', hw, 20],
   ];
@@ -783,7 +930,7 @@ function renderPage(route) {
   const fn = {
     home: { teacher: teacherHome, parent: parentHome, admin: adminHome }[r],
     community: pageCommunity, messages: pageMessages, resources: pageResources, grades: pageGrades, rewards: pageRewards,
-    feedback: pageFeedback, more: pageMore, 't-tasks': pageTeacherTasks, 't-resources': pageResources, 't-students': pageTeacherStudents,
+    feedback: pageFeedback, more: pageMore, news: pageNews, 't-tasks': pageTeacherTasks, 't-resources': pageResources, 't-students': pageTeacherStudents,
     't-feedback': pageTeacherFeedback, 'a-news': pageAdminNews, 'a-reports': pageAdminReports, 'a-prizes': pageAdminPrizes, 'p-child': pageParentChild,
   }[route];
   el.innerHTML = fn ? fn() : '<section class="intro"><h2>هالصفحة مو متاحة لهالحساب</h2><a class="btn btn--coral" href="#home" data-route="home">الرئيسية</a></section>';
@@ -842,49 +989,74 @@ function postCard(p) {
 /* ---------- الرسائل ---------- */
 function directory() {
   const r = role();
-  if (r === 'parent') return [...TEACHERS, ...STAFF];
-  if (r === 'teacher') return [...classmates(), ...TEACHERS.filter((t) => t.subject !== profile.subject), ...STAFF];
-  return [...classmates(), ...TEACHERS, ...STAFF];
+  if (r === 'parent') return [...TEACHERS, ...STAFF].map((p) => person(p.id));
+  if (r === 'teacher') return [STUDENT_ID, ...classmates().map((c) => c.id), PARENT_ID, ...STAFF.map((x) => x.id)].map(person);
+  if (r === 'admin') return [STUDENT_ID, ...classmates().map((c) => c.id), ...TEACHERS.map((x) => x.id), PARENT_ID].map(person);
+  return [...classmates().map((c) => c.id), ...TEACHERS.map((x) => x.id), ...STAFF.map((x) => x.id)].map(person);
 }
-// القروبات للطلاب والمشرفين بس، وكل حساب يشوف محادثاته
-const myThreads = () => db.get('threads', []).filter((t) => (t.group ? ['student', 'admin'].includes(role()) : (t.owner || 'student') === role()));
+// القروبات للطلاب والمشرفين بس، والرسائل الخاصة توصل للطرف الثاني
+const myThreads = () => db.get('threads', []).filter((t) => (t.group ? ['student', 'admin'].includes(role()) : (t.members || []).includes(myId())))
+  .sort((a, b) => (b.msgs[b.msgs.length - 1]?.at || 0) - (a.msgs[a.msgs.length - 1]?.at || 0));
+const groupName = () => `قروب ${myClassName()}`;
+const threadOther = (t) => (t.group ? { name: groupName(), role: 'طلاب الفصل والمشرف بس' } : person(t.members.find((x) => x !== myId()) || t.members[0]));
+const initial = (n) => esc(String(n).replace(/^(قروب|أ\.)\s*/, '')[0] || '؟');
 function pageMessages() {
   const threads = myThreads();
   if (state.thread) {
     const th = threads.find((t) => t.id === state.thread);
-    if (th) return `
+    if (th) {
+      const o = threadOther(th);
+      return `
       <section class="thread card">
         <header><button type="button" class="icon-btn icon-btn--soft" data-thread-back aria-label="رجوع">${icon('back')}</button>
-          <span class="avatar">${esc(th.name.replace('قروب ', '')[0])}</span><div><strong>${esc(th.name)}</strong><small>${esc(th.role)}</small></div></header>
+          <span class="avatar${th.group ? ' avatar--coral' : ''}">${initial(o.name)}</span><div><strong>${esc(o.name)}</strong><small>${esc(o.role)}</small></div></header>
         <div class="thread__body" data-thread-body>
-          ${th.msgs.map((m) => `<div class="msg ${m.from === (profile?.name) ? 'msg--me' : 'msg--ai'}">${th.group && m.from !== profile?.name ? `<b class="msg__from">${esc(m.from)}</b>` : ''}${bidi(esc(m.text))}<small class="msg__time">${ago(m.at)}</small></div>`).join('')}
+          ${th.msgs.length ? th.msgs.map((m) => {
+            const mine = m.from === myId();
+            return `<div class="msg ${mine ? 'msg--me' : 'msg--ai'}">${th.group && !mine ? `<b class="msg__from">${esc(person(m.from).name)} • ${esc(person(m.from).role)}</b>` : ''}${bidi(esc(m.text))}<small class="msg__time">${ago(m.at)}</small></div>`;
+          }).join('') : '<p class="empty">ابدأ المحادثة 👋</p>'}
         </div>
         <form class="composer composer--inline" data-msg-form="${th.id}">
           <div class="composer__row"><textarea class="input" rows="1" maxlength="1000" placeholder="اكتب رسالة…"></textarea>
           <button type="submit" class="icon-btn icon-btn--coral" aria-label="أرسل">${icon('send')}</button></div>
         </form>
       </section>`;
+    }
   }
   const people = directory();
   return `
     <section class="card">
       ${sectionHead('محادثاتك')}
       ${threads.length ? '' : '<p class="empty">ما عندك محادثات للحين. ابدأ وحدة من تحت 👇</p>'}
-      <ul class="threads">${threads.map((t) => `
-        <li><button type="button" data-open-thread="${t.id}"><span class="avatar${t.group ? ' avatar--coral' : ''}">${esc(t.name.replace('قروب ', '')[0])}</span>
-          <div><strong>${esc(t.name)}</strong><small>${esc(t.role)}</small><p>${esc(t.msgs[t.msgs.length - 1]?.text || '')}</p></div><span class="pts">${t.msgs.length ? ago(t.msgs[t.msgs.length - 1].at) : ''}</span></button></li>`).join('')}</ul>
+      <ul class="threads">${threads.map((t) => {
+        const o = threadOther(t);
+        const last = t.msgs[t.msgs.length - 1];
+        return `
+        <li><button type="button" data-open-thread="${t.id}"><span class="avatar${t.group ? ' avatar--coral' : ''}">${initial(o.name)}</span>
+          <div><strong>${esc(o.name)}</strong><small>${esc(o.role)}</small><p>${last ? `${last.from === myId() ? 'أنت: ' : ''}${esc(last.text)}` : ''}</p></div><span class="pts">${last ? ago(last.at) : ''}</span></button></li>`;
+      }).join('')}</ul>
     </section>
     <section class="card">
       ${sectionHead('رسالة جديدة')}
       <p class="field__hint">كل واحد اسمه وصفته واضحة.</p>
-      <ul class="people">${people.map((p) => `<li><button type="button" data-new-thread="${p.id}"><span class="avatar">${esc(p.name.replace('أ. ', '')[0])}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.role)}</small></div></button></li>`).join('')}</ul>
+      <ul class="people">${people.map((p) => `<li><button type="button" data-new-thread="${p.id}"><span class="avatar">${initial(p.name)}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.role)}</small></div></button></li>`).join('')}</ul>
     </section>`;
+}
+
+/* ---------- أخبار المدرسة ---------- */
+function pageNews() {
+  const all = db.get('news', []);
+  return `<section class="block news-list">${all.length ? all.map((n) => `
+    <div class="news${n.kind === 'مسابقة' ? '' : ' news--soft'}">
+      <div><span class="eyebrow eyebrow--light">${esc(n.kind)} • ${relDay(n.at)}</span><h3>${esc(n.title)}</h3><p>${bidi(esc(n.body))}${n.deadline ? ` • حتى ${fmtDate(n.deadline)}` : ''}</p></div>
+      ${n.kind === 'مسابقة' && role() === 'student' ? `<button class="btn btn--white btn--sm" type="button" data-register="${n.id}">${db.get('registered', []).includes(n.id) ? 'مسجّل ✓' : 'سجّل'}</button>` : ''}
+    </div>`).join('') : '<p class="empty">ما فيه أخبار للحين.</p>'}</section>`;
 }
 
 /* ---------- المصادر ---------- */
 function pageResources() {
   const r = role();
-  const list = db.get('resources', []).filter((x) => r !== 'teacher' || x.by === 'me' || x.subject === profile.subject);
+  const list = db.get('resources', []).filter((x) => r !== 'teacher' || x.by === myTeacherId() || x.subject === profile.subject);
   const subjects = [...new Set(db.get('resources', []).map((x) => x.subject))];
   return `
     ${r === 'teacher' ? `
@@ -893,7 +1065,7 @@ function pageResources() {
       <label class="field"><span>العنوان</span><input type="text" id="r-title" class="input" maxlength="80" required placeholder="مثلاً: ملخص الفصل الرابع" /></label>
       <div class="field"><span>النوع</span>${chipGroupSimple('r-kind', [['ملف', 'ملف'], ['رابط', 'رابط'], ['فيديو', 'فيديو']], 'ملف')}</div>
       <label class="field"><span>الرابط (اختياري)</span><input type="url" id="r-url" class="input" placeholder="https://…" /></label>
-      <label class="field"><span>أو ارفع ملف (حتى ١ ميقا)</span><input type="file" id="r-file" class="input" /></label>
+      <label class="field"><span>أو ارفع ملف صغير (حتى ٥٠٠ كيلوبايت)</span><input type="file" id="r-file" class="input" /></label>
       <button type="submit" class="btn btn--coral">أضف المصدر</button>
     </form>` : ''}
     <section class="block">
@@ -905,9 +1077,9 @@ function pageResources() {
           const t = TEACHERS.find((tt) => tt.id === x.by);
           const href = x.fileData || x.url;
           return `<li class="res card"><span class="res__icon">${icon(x.kind === 'فيديو' ? 'image' : 'resources')}</span>
-            <div><strong>${esc(x.title)}</strong><small>${esc(x.kind)} • ${x.by === 'me' ? esc(profile.name) : t ? esc(t.name) : ''} • ${relDay(x.at)}</small></div>
+            <div><strong>${esc(x.title)}</strong><small>${esc(x.kind)} • ${t ? esc(person(t.id).name) : ''} • ${relDay(x.at)}</small></div>
             ${href ? `<a class="btn btn--ghost btn--sm" href="${esc(href)}" ${x.fileData ? `download="${esc(x.fileName || x.title)}"` : 'target="_blank" rel="noopener"'}>افتح</a>` : '<span class="pts">ملف تجريبي</span>'}
-            ${r === 'teacher' && x.by === 'me' ? `<button type="button" class="slot__more" data-del-res="${x.id}" aria-label="احذف">×</button>` : ''}</li>`;
+            ${r === 'teacher' && x.by === myTeacherId() ? `<button type="button" class="slot__more" data-del-res="${x.id}" aria-label="احذف">×</button>` : ''}</li>`;
         }).join('')}</ul>`;
       }).join('') || '<p class="empty">ما فيه مصادر للحين.</p>'}
     </section>`;
@@ -973,7 +1145,7 @@ function pageRewards() {
     </section>
     <section class="card">
       ${sectionHead('جوائز المنافسة من المدرسة')}
-      <ol class="prizes">${db.get('prizes', []).map((p, k) => `<li><span class="rank">${['🥇', '🥈', '🥉'][k] || ar(k + 1)}</span>${esc(p)}</li>`).join('')}</ol>
+      <ol class="prizes">${db.get('prizes', []).map((p, k) => (p ? `<li><span class="rank">${['🥇', '🥈', '🥉'][k] || ar(k + 1)}</span>${esc(p)}</li>` : '')).join('')}</ol>
     </section>`;
 }
 
@@ -988,20 +1160,19 @@ function pageFeedback() {
       <label class="toggle"><input type="checkbox" id="f-anon" checked /> <span>أرسله بدون اسمي</span></label>
       <button type="submit" class="btn btn--coral">أرسل</button>
     </form>
-    ${mine.length ? `<section class="card">${sectionHead('اقتراحاتك')}<ul class="fb-list">${mine.map((f) => `<li><strong>${esc(TEACHERS.find((t) => t.id === f.to)?.name || '')}</strong><p>${esc(f.text)}</p><small>${relDay(f.at)}${f.anon ? ' • بدون اسم' : ''}</small></li>`).join('')}</ul></section>` : ''}`;
+    ${mine.length ? `<section class="card">${sectionHead('اقتراحاتك')}<ul class="fb-list">${mine.map((f) => `<li><strong>${esc(TEACHERS.find((t) => t.id === f.to)?.name || '')}</strong><p>${bidi(esc(f.text))}</p><small>${relDay(f.at)}${f.anon ? ' • بدون اسم' : ''}</small></li>`).join('')}</ul></section>` : ''}`;
 }
 
 /* ---------- المعلم ---------- */
-const myTeacherId = () => (TEACHERS.find((t) => t.subject === profile?.subject) || {}).id;
 function teacherHome() {
-  const tasks = db.get('schoolTasks', []).filter((t) => t.by === 'me' || t.by === myTeacherId());
-  const fb = db.get('feedback', []).filter((f) => f.to === myTeacherId() || f.to === 'me');
+  const tasks = db.get('schoolTasks', []).filter((t) => t.by === myTeacherId());
+  const fb = db.get('feedback', []).filter((f) => f.to === myTeacherId());
   return `
     <section class="stats">
       <div class="stat"><small>واجبات واختبارات</small><strong>${ar(tasks.length)}</strong></div>
-      <div class="stat"><small>مصادرك</small><strong>${ar(db.get('resources', []).filter((x) => x.by === 'me' || x.subject === profile.subject).length)}</strong></div>
+      <div class="stat"><small>مصادرك</small><strong>${ar(db.get('resources', []).filter((x) => x.by === myTeacherId() || x.subject === profile.subject).length)}</strong></div>
       <div class="stat"><small>اقتراحات الطلاب</small><strong>${ar(fb.length)}</strong></div>
-      <div class="stat"><small>طلاب فصلك</small><strong>${ar(24)}</strong></div>
+      <div class="stat"><small>طلاب فصلك</small><strong>${ar(classmates().length + 1)}</strong></div>
     </section>
     <section class="more-grid">
       ${NAV.teacher.side.filter(([id]) => id !== 'home').map(([id, title, ic]) => `<a class="more-item" href="#${id}" data-route="${id}">${icon(ic)}<span>${title}</span></a>`).join('')}
@@ -1016,9 +1187,9 @@ function teacherHome() {
 }
 const taskList = (tasks, del) => tasks.length ? `<ul class="res-list">${tasks.map((t) => `
   <li class="res card"><span class="res__icon">${icon('grades')}</span><div><strong>${esc(t.title)}</strong><small>${esc(t.kind)} • ${esc(t.subject)} • ${relDay(t.due)}</small></div>
-  ${del && t.by === 'me' ? `<button type="button" class="slot__more" data-del-hw="${t.id}" aria-label="احذف">×</button>` : ''}</li>`).join('')}</ul>` : '<p class="empty">ما فيه شي للحين.</p>';
+  ${del && t.by === myTeacherId() ? `<button type="button" class="slot__more" data-del-hw="${t.id}" aria-label="احذف">×</button>` : ''}</li>`).join('')}</ul>` : '<p class="empty">ما فيه شي للحين.</p>';
 function pageTeacherTasks() {
-  const tasks = db.get('schoolTasks', []).filter((t) => t.by === 'me' || t.by === myTeacherId()).sort((a, b) => a.due.localeCompare(b.due));
+  const tasks = db.get('schoolTasks', []).filter((t) => t.by === myTeacherId()).sort((a, b) => a.due.localeCompare(b.due));
   return `
     <form class="card sheet__form" data-hw-form>
       ${sectionHead('واجب أو اختبار جديد')}
@@ -1032,45 +1203,47 @@ function pageTeacherTasks() {
 }
 function pageTeacherStudents() {
   const levels = db.get('classLevels', {});
-  const students = [profile ? { id: 'me-student', name: 'عبدالله' } : null, ...classmates()].filter(Boolean).slice(0, 13);
+  const students = [{ id: 'me-student', name: db.get('studentName', 'عبدالله') }, ...classmates()];
   return `
     <section class="card">
       ${sectionHead(`طلاب ${myClassName()} — ${esc(profile.subject)}`)}
-      <p class="field__hint">اختر مستوى كل طالب. «عبدالله» هو حساب الطالب التجريبي، ومستواه يطلع له ولولي أمره.</p>
+      <p class="field__hint">اختر مستوى كل طالب. «${esc(db.get('studentName', 'عبدالله'))}» هو حساب الطالب التجريبي، ومستواه يطلع له ولولي أمره.</p>
       <ul class="levels">${students.map((s) => {
-        const cur = s.id === 'me-student' ? db.get('levels', {})[profile.subject] : levels[s.id];
+        const cur = s.id === 'me-student' ? db.get('levels', {})[profile.subject] : levels[`${profile.subject}:${s.id}`];
         return `<li class="level card"><span class="avatar">${esc(s.name[0])}</span><div><strong>${esc(s.name)}</strong></div>
           <select class="input input--sm" data-set-level="${s.id}">${['—', ...LEVELS].map((l) => `<option${l === cur ? ' selected' : ''}>${l}</option>`).join('')}</select></li>`;
       }).join('')}</ul>
     </section>`;
 }
 function pageTeacherFeedback() {
-  const fb = db.get('feedback', []).filter((f) => f.to === myTeacherId() || f.to === 'me');
+  const fb = db.get('feedback', []).filter((f) => f.to === myTeacherId());
   return `<section class="card">${sectionHead('اقتراحات طلابك', `<span class="count">${ar(fb.length)}</span>`)}
-    ${fb.length ? `<ul class="fb-list">${fb.map((f) => `<li><p>${esc(f.text)}</p><small>${f.anon ? 'بدون اسم' : esc(f.from || '')} • ${relDay(f.at)}</small></li>`).join('')}</ul>` : '<p class="empty">ما فيه اقتراحات للحين.</p>'}
+    ${fb.length ? `<ul class="fb-list">${fb.map((f) => `<li><p>${bidi(esc(f.text))}</p><small>${f.anon ? 'بدون اسم' : esc(f.from || '')} • ${relDay(f.at)}</small></li>`).join('')}</ul>` : '<p class="empty">ما فيه اقتراحات للحين.</p>'}
     <button type="button" class="btn btn--ghost" data-ask-fb>${icon('spark')} لخّصها لي بالذكاء الاصطناعي</button></section>`;
 }
 
 /* ---------- ولي الأمر ---------- */
 function parentHome() {
   const levels = db.get('levels', {});
-  const weak = SUBJECT_LIST.filter((s) => ['يحتاج دعم', 'جيد'].includes(levels[s]));
-  const news = db.get('news', []).filter((n) => n.kind === 'مسابقة' || n.kind === 'إعلان');
+  const weak = SUBJECT_LIST.filter((s) => levels[s] === 'يحتاج دعم');
+  const late = lateHomework();
+  const news = db.get('news', []).slice(0, 4);
   return `
     <section class="goal">
       <span class="chip chip--light">ولدك</span>
       <h2>${esc(profile.child || 'عبدالله')} • ${myClassName()}</h2>
-      <p>${weak.length ? `يحتاج يقوّي: ${weak.join('، ')}` : 'مستواه ممتاز في كل المواد 👏'}</p>
+      <p>${weak.length ? `يحتاج دعم في: ${weak.join('، ')}` : 'ما فيه مادة يحتاج فيها دعم 👏'}${late.length ? ` • ${ar(late.length)} واجب متأخر` : ''}</p>
     </section>
     <section class="card">${sectionHead('مستواه في المواد', `<a class="link" href="#p-child" data-route="p-child">التفاصيل</a>`)}${levelsTable(levels, {})}</section>
-    <section class="card">${sectionHead('المسابقات والإعلانات')}${newsList(news)}</section>
+    <section class="card">${sectionHead('أخبار المدرسة والمسابقات', db.get('news', []).length > 4 ? '<a class="link" href="#news" data-route="news">الكل</a>' : '')}${newsList(news)}</section>
     <p class="private-note">${icon('lock')} الخطة المستقبلية والجدول خاصة بالطالب ولا تظهر لولي الأمر</p>
     <div class="actions actions--center">${themeBtn()}<button type="button" class="btn btn--ghost switch-btn" data-switch>${icon('back')} تبديل الحساب</button></div>`;
 }
+const lateHomework = () => db.get('schoolTasks', []).filter((t) => t.kind === 'واجب' && t.title.trim() && t.due < todayISO() && !db.get('submitted', []).includes(t.id));
 function pageParentChild() {
   const levels = db.get('levels', {});
   const missing = SUBJECT_LIST.filter((s) => levels[s] === 'يحتاج دعم');
-  const late = db.get('schoolTasks', []).filter((t) => t.due < todayISO() && !db.get('submitted', []).includes(t.id));
+  const late = lateHomework();
   return `
     <section class="card">${sectionHead('المستوى والدرجات')}${levelsTable(levels, db.get('grades', {}))}</section>
     <section class="card">${sectionHead('وش ناقص فيه')}
@@ -1080,14 +1253,15 @@ function pageParentChild() {
         ${!missing.length && !late.length ? '<li><p>ما فيه شي ناقص 👏</p></li>' : ''}
       </ul></section>`;
 }
-const newsList = (news) => news.length ? `<ul class="res-list">${news.map((n) => `<li class="res card"><span class="res__icon">${icon(n.kind === 'مسابقة' ? 'rewards' : 'messages')}</span><div><strong>${esc(n.title)}</strong><small>${esc(n.kind)}${n.deadline ? ` • حتى ${fmtDate(n.deadline)}` : ''}</small><p>${esc(n.body)}</p></div>${role() === 'admin' ? `<button type="button" class="slot__more" data-del-news="${n.id}" aria-label="احذف">×</button>` : ''}</li>`).join('')}</ul>` : '<p class="empty">ما فيه شي للحين.</p>';
+const newsList = (news) => news.length ? `<ul class="res-list">${news.map((n) => `<li class="res card"><span class="res__icon">${icon(n.kind === 'مسابقة' ? 'rewards' : 'messages')}</span><div><strong>${esc(n.title)}</strong><small>${esc(n.kind)}${n.deadline ? ` • حتى ${fmtDate(n.deadline)}` : ''}</small><p>${bidi(esc(n.body))}</p></div>${role() === 'admin' ? `<button type="button" class="slot__more" data-del-news="${n.id}" aria-label="احذف">×</button>` : ''}</li>`).join('')}</ul>` : '<p class="empty">ما فيه شي للحين.</p>';
 
 /* ---------- الإدارة ---------- */
+const REPORT_ROWS = [['٣/أ', 91, 14.2], ['٢/ب', 88, 12.8], ['٢/أ', 84, 11.5], ['١/ج', 79, 9.1], ['١/أ', 73, 8.4]];
 function adminHome() {
   return `
     <section class="stats">
       <div class="stat"><small>طلاب المدرسة</small><strong>${ar(312)}</strong></div>
-      <div class="stat"><small>إنجاز الواجبات</small><strong>${ar(84)}٪</strong></div>
+      <div class="stat"><small>إنجاز الواجبات</small><strong>${ar(Math.round(REPORT_ROWS.reduce((a, r) => a + r[1], 0) / REPORT_ROWS.length))}٪</strong></div>
       <div class="stat"><small>ساعات تركيز هالأسبوع</small><strong>${ar(1240)}</strong></div>
       <div class="stat"><small>منشورات المجتمع</small><strong>${ar(db.get('posts', []).length + 140)}</strong></div>
     </section>
@@ -1119,10 +1293,10 @@ function pageAdminPrizes() {
     <section class="card">${sectionHead('الأوائل هالأسبوع (المدرسة)')}<ol class="leaders">${boardRows('school').slice(0, 3).map(boardRow).join('')}</ol></section>`;
 }
 function pageAdminReports() {
-  const rows = [['٣/أ', 91, 14.2], ['٢/ب', 88, 12.8], ['٢/أ', 84, 11.5], ['١/ج', 79, 9.1], ['١/أ', 73, 8.4]];
+  const rows = REPORT_ROWS;
   return `
     <section class="card">${sectionHead('الفصول', '<span class="count">بيانات تجريبية</span>')}
-      <ul class="report">${rows.map(([c, hw, h]) => `<li><b>${c}</b><div class="gap__bar"><span class="gap__now" style="width:${hw}%"></span></div><span>${ar(hw)}٪ واجبات</span><span>${ar(h)} س تركيز/طالب</span></li>`).join('')}</ul>
+      <ul class="report">${rows.map(([c, hw, h]) => `<li><b>${c}</b><div class="gap__bar"><span class="gap__now" style="width:${hw}%"></span></div><span>${ar(hw)}٪ واجبات</span><span>${ar(String(h).replace('.', '٫'))} س تركيز/طالب</span></li>`).join('')}</ul>
     </section>
     <section class="card">${sectionHead('المواد اللي تحتاج دعم')}
       <ul class="fb-list"><li><strong>فيزياء</strong><p>٣٨٪ من طلاب ثاني ثانوي مستواهم «يحتاج دعم».</p></li><li><strong>إنجليزي</strong><p>٢٢٪ من طلاب أول ثانوي مستواهم «يحتاج دعم».</p></li></ul>
@@ -1157,30 +1331,33 @@ function parseActions(text) {
   const clean = String(text || '').replace(/\[\[إجراء\]\]([\s\S]*?)\[\[\/إجراء\]\]/g, (_, j) => { try { acts.push(JSON.parse(j)); } catch { /* نتجاهل */ } return ''; });
   return { clean: clean.trim(), acts };
 }
+const ROLE_ACTIONS = { student: ['task', 'exam'], teacher: ['homework', 'resource'], admin: ['news'], parent: [] };
+const allowedAction = (x) => x && (ROLE_ACTIONS[role()] || []).includes(x.type);
+const safeDate = (d) => (okDate(d) ? fmtDate(d) : '');
 const actionLabel = (x) => ({
-  task: `أضف «${x.title}» لجدولك (${DAYS[x.day] || ''} ${x.start || ''})`, exam: `أضف اختبار ${x.subject} (${x.date})`,
-  homework: `أضف ${x.kind || 'واجب'}: «${x.title}» (${x.due})`, resource: `أضف المصدر «${x.title}»`, news: `انشر ${x.kind || 'خبر'}: «${x.title}»`,
+  task: `أضف «${x.title}» لجدولك (${DAYS[x.day] || ''} ${x.start ? fmtTime(toMin(x.start)) : ''})`, exam: `أضف اختبار ${x.subject} (${safeDate(x.date)})`,
+  homework: `أضف ${x.kind || 'واجب'}: «${x.title}» (${safeDate(x.due)})`, resource: `أضف المصدر «${x.title}»`, news: `انشر ${x.kind || 'خبر'}: «${x.title}»`,
 }[x.type] || 'نفّذ');
 function applyAction(x) {
   const r = role();
-  if (x.type === 'task' && r === 'student') {
+  if (x.type === 'task' && r === 'student' && str(x.title)) {
     const list = db.get('tasks', []);
     list.push({ id: uid(), title: str(x.title, 80), day: clamp(Number(x.day) || 0, 0, 6), start: toMin(x.start || '17:00'), minutes: clamp(Number(x.minutes) || 45, 10, 240), repeat: !!x.repeat, date: isoDate(weekDates()[clamp(Number(x.day) || 0, 0, 6)]), type: 'study' });
     db.set('tasks', list); return 'انضافت لجدولك ✓';
   }
-  if (x.type === 'exam' && r === 'student' && okDate(x.date)) {
+  if (x.type === 'exam' && r === 'student' && okDate(x.date) && x.date >= todayISO() && str(x.subject)) {
     const list = db.get('exams', []); list.push({ id: uid(), subject: str(x.subject, 40), date: x.date, note: str(x.note, 80) }); db.set('exams', list); return 'انضاف الاختبار كتذكير ✓';
   }
-  if (x.type === 'homework' && r === 'teacher' && okDate(x.due)) {
-    const list = db.get('schoolTasks', []); list.push({ id: uid(), title: str(x.title, 90), subject: profile.subject, kind: x.kind === 'اختبار' ? 'اختبار' : 'واجب', due: x.due, by: 'me' }); db.set('schoolTasks', list); return 'انضاف وطلع للطلاب ✓';
+  if (x.type === 'homework' && r === 'teacher' && okDate(x.due) && x.due >= todayISO() && str(x.title)) {
+    const list = db.get('schoolTasks', []); list.push({ id: uid(), title: str(x.title, 90), subject: profile.subject, kind: x.kind === 'اختبار' ? 'اختبار' : 'واجب', due: x.due, by: myTeacherId() }); db.set('schoolTasks', list); return 'انضاف وطلع للطلاب ✓';
   }
-  if (x.type === 'resource' && r === 'teacher') {
-    const list = db.get('resources', []); list.unshift({ id: uid(), title: str(x.title, 80), subject: profile.subject, kind: ['ملف', 'رابط', 'فيديو'].includes(x.kind) ? x.kind : 'رابط', url: /^https?:\/\//.test(x.url || '') ? x.url : '', by: 'me', at: todayISO() }); db.set('resources', list); return 'انضاف المصدر ✓';
+  if (x.type === 'resource' && r === 'teacher' && str(x.title)) {
+    const list = db.get('resources', []); list.unshift({ id: uid(), title: str(x.title, 80), subject: profile.subject, kind: ['ملف', 'رابط', 'فيديو'].includes(x.kind) ? x.kind : 'رابط', url: /^https?:\/\//.test(x.url || '') ? x.url : '', by: myTeacherId(), at: todayISO() }); db.set('resources', list); return 'انضاف المصدر ✓';
   }
-  if (x.type === 'news' && r === 'admin') {
+  if (x.type === 'news' && r === 'admin' && str(x.title)) {
     const list = db.get('news', []); list.unshift({ id: uid(), kind: ['خبر', 'مسابقة', 'إعلان'].includes(x.kind) ? x.kind : 'خبر', title: str(x.title, 80), body: str(x.body, 400), deadline: okDate(x.deadline) ? x.deadline : '', at: todayISO() }); db.set('news', list); return 'انتشر ✓';
   }
-  return 'ما قدرت أنفذ هالإجراء';
+  return null;
 }
 
 
@@ -1236,8 +1413,25 @@ document.addEventListener('click', (e) => {
   if (day) { state.scheduleDay = Number(day.dataset.day); renderSchedule(); return; }
   const slot = t.closest('[data-slot]');
   if (slot) {
-    const k = `${isoDate(weekDates()[state.scheduleDay])}|${slot.dataset.slot}`;
-    if (state.done[k]) delete state.done[k]; else { state.done[k] = true; bumpStreak(); toast('أحسنت! +١٠ نقاط 💪'); }
+    const date = isoDate(weekDates()[state.scheduleDay]);
+    const k = `${date}|${slot.dataset.slot}`;
+    const b = dayBlocks(state.scheduleDay, date).find((x) => x.id === slot.dataset.slot);
+    const a = state.answers;
+    if (state.done[k]) {
+      const rec = state.done[k];
+      if (rec && rec.n && rec.k && a) { a[rec.k + 'Reached'] = Math.max(0, (a[rec.k + 'Reached'] || 0) - rec.n); store.set('answers', a); }
+      delete state.done[k];
+    } else {
+      const rec = { t: b ? b.title : '', note: b ? b.note : '' };
+      // جلسة دورة: نقدّم مكانك في الدورة بعدد دروسها
+      if (b && b.course && b.lessons && a) {
+        rec.k = b.course; rec.n = b.lessons;
+        a[b.course + 'Started'] = true;
+        a[b.course + 'Reached'] = Math.min(courseTotal(a, b.course), (a[b.course + 'Reached'] || 0) + b.lessons);
+        store.set('answers', a);
+      }
+      state.done[k] = rec; bumpStreak(); toast(rec.n ? `أحسنت! خلّصت ${lessonsTxt(rec.n)} 💪 +١٠ نقاط` : 'أحسنت! +١٠ نقاط 💪');
+    }
     store.set('done', state.done);
     renderSchedule();
     return;
@@ -1254,7 +1448,7 @@ document.addEventListener('click', (e) => {
   if (ed) {
     const id = ed.dataset.editSlot;
     if (ed.dataset.src === 'mine') taskSheet(db.get('tasks', []).find((x) => x.id === id));
-    else { const b = state.plan.week[state.scheduleDay].blocks.find((x) => x.id === id); if (b) planSlotSheet(b); }
+    else { const b = dayBlocks(state.scheduleDay, isoDate(weekDates()[state.scheduleDay])).find((x) => x.id === id); if (b) planSlotSheet(b); }
     return;
   }
   const ee = t.closest('[data-edit-exam]');
@@ -1276,7 +1470,7 @@ document.addEventListener('click', (e) => {
 
   // الأخبار
   const reg = t.closest('[data-register]');
-  if (reg) { const l = db.get('registered', []); if (!l.includes(reg.dataset.register)) { l.push(reg.dataset.register); db.set('registered', l); toast('سجّلناك ✓'); } renderStudentHome(); return; }
+  if (reg) { const l = db.get('registered', []); if (!l.includes(reg.dataset.register)) { l.push(reg.dataset.register); db.set('registered', l); toast('سجّلناك ✓'); } if (currentRoute() === 'news') renderPage('news'); else renderStudentHome(); return; }
 
   // المجتمع
   const g = t.closest('[data-group]');
@@ -1292,21 +1486,25 @@ document.addEventListener('click', (e) => {
   if (t.closest('[data-thread-back]')) { state.thread = null; renderPage('messages'); return; }
   const nt = t.closest('[data-new-thread]');
   if (nt) {
-    const p = directory().find((x) => x.id === nt.dataset.newThread);
+    const pid = nt.dataset.newThread;
     const threads = db.get('threads', []);
-    let th = threads.find((x) => x.with === p.id && (x.owner || 'student') === role());
-    if (!th) { th = { id: `dm-${role()}-${p.id}`, owner: role(), with: p.id, name: p.name, role: p.role, msgs: [] }; threads.unshift(th); db.set('threads', threads); }
+    let th = threads.find((x) => !x.group && x.members && x.members.includes(pid) && x.members.includes(myId()));
+    if (!th) { th = { id: `dm-${[myId(), pid].sort().join('-')}`, members: [myId(), pid], msgs: [] }; threads.unshift(th); db.set('threads', threads); }
     state.thread = th.id; renderPage('messages'); return;
   }
 
-  // المعلم والإدارة
+  // المعلم والإدارة (الحذف يحتاج ضغطتين)
+  const delBtn = t.closest('[data-del-res],[data-del-hw],[data-del-news]');
+  if (delBtn && !delBtn.dataset.armed) { delBtn.dataset.armed = '1'; delBtn.textContent = 'احذف؟'; delBtn.classList.add('is-armed'); setTimeout(() => { if (delBtn.isConnected) { delete delBtn.dataset.armed; delBtn.textContent = '×'; delBtn.classList.remove('is-armed'); } }, 3000); return; }
+  if (t.closest('[data-del-res],[data-del-hw]') && role() !== 'teacher') return;
+  if (t.closest('[data-del-news]') && role() !== 'admin') return;
   const dr = t.closest('[data-del-res]');
   if (dr) { db.set('resources', db.get('resources', []).filter((x) => x.id !== dr.dataset.delRes)); renderPage(currentRoute()); return; }
   const dh = t.closest('[data-del-hw]');
   if (dh) { db.set('schoolTasks', db.get('schoolTasks', []).filter((x) => x.id !== dh.dataset.delHw)); renderPage(currentRoute()); return; }
   const dn = t.closest('[data-del-news]');
   if (dn) { db.set('news', db.get('news', []).filter((x) => x.id !== dn.dataset.delNews)); renderPage(currentRoute()); return; }
-  if (t.closest('[data-ask-fb]')) { const fb = db.get('feedback', []).filter((f) => f.to === myTeacherId() || f.to === 'me').map((f) => '- ' + f.text).join('\n'); askAbout(`لخّص لي اقتراحات طلابي هذي، وقل لي وش أبدأ أحسّن:\n${fb || 'ما فيه اقتراحات'}`); return; }
+  if (t.closest('[data-ask-fb]')) { const fb = db.get('feedback', []).filter((f) => f.to === myTeacherId()).map((f) => '- ' + f.text).join('\n'); askAbout(`لخّص لي اقتراحات طلابي هذي، وقل لي وش أبدأ أحسّن:\n${fb || 'ما فيه اقتراحات'}`); return; }
   if (t.closest('[data-ask-report]')) { askAbout('عندنا ٣٨٪ من طلاب ثاني ثانوي مستواهم «يحتاج دعم» في الفيزياء، و٢٢٪ من أول ثانوي في الإنجليزي. اقترح خطة تحسين عملية لمدة ٤ أسابيع للمدرسة.'); return; }
 
   // إجراءات المساعد
@@ -1314,19 +1512,32 @@ document.addEventListener('click', (e) => {
   if (act) {
     const turn = chat.turns[Number(act.dataset.act)];
     const x = parseActions(turn?.content).acts[Number(act.dataset.k)];
-    if (x) { toast(applyAction(x)); turn.applied = [...(turn.applied || []), Number(act.dataset.k)]; db.set('chat:' + role(), chat.turns.filter((tt) => !tt.pending && !tt.error).slice(-30)); renderAi(); }
+    const msg = allowedAction(x) ? applyAction(x) : null;
+    if (!msg) { toast('ما قدرت أضيفه: تأكد إن التاريخ ما فات والبيانات كاملة'); return; }
+    if (x) { toast(msg); turn.applied = [...(turn.applied || []), Number(act.dataset.k)]; db.set('chat:' + role(), chat.turns.filter((tt) => !tt.pending && !tt.error).slice(-30)); renderAi(); }
   }
 });
 
+const FORM_ROLES = {
+  'data-task-form': ['student'], 'data-exam-form': ['student'], 'data-move-form': ['student'], 'data-fb-form': ['student'],
+  'data-post-form': ['student', 'admin'], 'data-comment-form': ['student', 'admin'], 'data-hw-form': ['teacher'], 'data-res-form': ['teacher'],
+  'data-news-form': ['admin'], 'data-prizes-form': ['admin'],
+};
 document.addEventListener('submit', async (e) => {
   const f = e.target;
   if (f.matches('[data-welcome-form]')) { enter(e); return; }
+  for (const [attr, roles] of Object.entries(FORM_ROLES)) {
+    if (f.hasAttribute(attr) && !roles.includes(role())) { e.preventDefault(); toast('هالإجراء مو متاح لحسابك'); return; }
+  }
   if (f.matches('[data-task-form]')) {
     e.preventDefault();
     const list = db.get('tasks', []);
     const day = Number(simpleVal('s-day') ?? state.scheduleDay);
     const item = { id: f.dataset.taskForm || uid(), title: $('#s-title').value.trim(), day, start: Number($('#s-start').value), minutes: clamp(Number($('#s-min').value) || 45, 10, 240), repeat: $('#s-repeat').checked, date: isoDate(weekDates()[day]), type: 'study' };
     if (!item.title) { toast('اكتب المهمة'); return; }
+    if (!item.repeat && item.date < todayISO()) { toast('هاليوم فات. اختر يوم جاي، أو خلها تتكرر كل أسبوع'); return; }
+    const c = clashWith(day, item.date, item.start, item.minutes, item.id);
+    if (c) { toast(`فيه «${c.title.slice(0, 30)}» بنفس الوقت، اختر وقت ثاني`); return; }
     const i = list.findIndex((x) => x.id === item.id);
     if (i >= 0) list[i] = item; else list.push(item);
     db.set('tasks', list); closeSheet(); state.scheduleDay = day; renderSchedule(); toast(i >= 0 ? 'انحفظت ✓' : 'انضافت لجدولك ✓');
@@ -1337,6 +1548,7 @@ document.addEventListener('submit', async (e) => {
     const list = db.get('exams', []);
     const item = { id: f.dataset.examForm || uid(), subject: $('#e-subject').value.trim(), date: $('#e-date').value, note: $('#e-note').value.trim() };
     if (!item.subject || !item.date) { toast('اكتب المادة والتاريخ'); return; }
+    if (item.date < todayISO()) { toast('التاريخ فات، اختر تاريخ جاي'); return; }
     const i = list.findIndex((x) => x.id === item.id);
     if (i >= 0) list[i] = item; else list.push(item);
     db.set('exams', list); closeSheet(); renderSchedule(); toast('انضاف كتذكير ✓');
@@ -1348,21 +1560,26 @@ document.addEventListener('submit', async (e) => {
     if (!reason) { toast('قلّي ليش تبي تغيّرها'); return; }
     const id = f.dataset.moveForm;
     const fromDay = state.scheduleDay;
-    const blocks = state.plan.week[fromDay].blocks;
-    const idx = blocks.findIndex((x) => x.id === id);
-    const b = blocks[idx];
+    const b = dayBlocks(fromDay, isoDate(weekDates()[fromDay])).find((x) => x.id === id);
+    if (!b) { closeSheet(); return; }
     if (reason === 'خلصتها قبل') {
-      state.done[`${isoDate(weekDates()[fromDay])}|${id}`] = true; store.set('done', state.done);
+      state.done[`${isoDate(weekDates()[fromDay])}|${id}`] = { t: b.title, note: b.note }; store.set('done', state.done);
       closeSheet(); renderSchedule(); toast('ممتاز! علّمناها خلصانة ✓'); return;
     }
     const toDay = Number(simpleVal('s-day'));
     if (isNaN(toDay) || toDay < 0) { toast('اختر يوم التعويض'); return; }
-    blocks.splice(idx, 1);
-    const moved = { ...b, start: Number($('#s-start').value), note: `تعويض عن ${DAYS[fromDay]} (${reason}${$('#m-other').value.trim() ? `: ${$('#m-other').value.trim()}` : ''})` };
-    state.plan.week[toDay].blocks.push(moved);
-    state.plan.week[toDay].blocks.sort((x, y) => x.start - y.start);
-    store.set('plan', state.plan);
-    closeSheet(); state.scheduleDay = toDay; renderSchedule(); toast(`نقلناها ليوم ${DAYS[toDay]} ✓`);
+    if (toDay < new Date().getDay()) { toast('هاليوم فات، اختر يوم جاي'); return; }
+    const start = Number($('#s-start').value);
+    const toDate = isoDate(weekDates()[toDay]);
+    const c = clashWith(toDay, toDate, start, b.minutes, id);
+    if (c) { toast(`فيه «${c.title.slice(0, 30)}» بنفس الوقت، اختر وقت ثاني`); return; }
+    const all = db.get('moves', {});
+    const list = (all[weekKey()] || []).filter((m) => m.id !== id);
+    const origin = list.find((m) => m.id === id)?.from ?? (b.moved ? weekMoves().find((m) => m.id === id)?.from : fromDay);
+    list.push({ id, from: origin ?? fromDay, to: toDay, start, note: `تعويض عن ${DAYS[origin ?? fromDay]} (${reason}${$('#m-other').value.trim() ? `: ${$('#m-other').value.trim()}` : ''})` });
+    all[weekKey()] = list;
+    db.set('moves', all);
+    closeSheet(); state.scheduleDay = toDay; renderSchedule(); toast(`نقلناها ليوم ${DAYS[toDay]} ✓ (لهالأسبوع بس)`);
     return;
   }
   if (f.matches('[data-post-form]')) {
@@ -1371,10 +1588,11 @@ document.addEventListener('submit', async (e) => {
     if (!text) { toast('اكتب شي قبل تنشر'); return; }
     const file = $('#post-file').files[0];
     let fileData = '';
-    if (file) { if (file.size > 1024 * 1024) { toast('الملف أكبر من ١ ميقا'); return; } fileData = await new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = () => res(''); rd.readAsDataURL(file); }); }
+    if (file) { if (file.size > 500 * 1024) { toast('الملف أكبر من ٥٠٠ كيلوبايت، حط رابط بداله'); return; } fileData = await new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = () => res(''); rd.readAsDataURL(file); }); }
     const posts = db.get('posts', []);
     posts.push({ id: uid(), group: communityGroup, author: profile.name, role: me().role, kind: $('[data-post-kind].is-on')?.dataset.postKind || 'ملخص', text, link: /^https?:\/\//.test($('#post-link').value) ? $('#post-link').value : '', file: file ? file.name : '', fileData, likes: 0, liked: false, comments: [], at: Date.now(), mine: true });
-    db.set('posts', posts); renderPage('community'); toast('انتشر ✓');
+    if (!db.set('posts', posts)) { toast('المساحة ممتلئة: جرّب بدون ملف'); return; }
+    renderPage('community'); toast('انتشر ✓');
     return;
   }
   if (f.matches('[data-comment-form]')) {
@@ -1388,25 +1606,28 @@ document.addEventListener('submit', async (e) => {
     e.preventDefault();
     const box = f.querySelector('textarea'); const text = box.value.trim(); if (!text) return;
     const threads = db.get('threads', []); const th = threads.find((x) => x.id === f.dataset.msgForm);
-    if (th) { th.msgs.push({ from: profile.name, text, at: Date.now() }); db.set('threads', threads); renderPage('messages'); }
+    if (th) { th.msgs.push({ from: myId(), text, at: Date.now() }); db.set('threads', threads); renderPage('messages'); }
     return;
   }
   if (f.matches('[data-res-form]')) {
     e.preventDefault();
     const file = $('#r-file').files[0];
     let fileData = '';
-    if (file) { if (file.size > 1024 * 1024) { toast('الملف أكبر من ١ ميقا'); return; } fileData = await new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = () => res(''); rd.readAsDataURL(file); }); }
+    if (file) { if (file.size > 500 * 1024) { toast('الملف أكبر من ٥٠٠ كيلوبايت، حط رابط بداله'); return; } fileData = await new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = () => res(''); rd.readAsDataURL(file); }); }
     const url = $('#r-url').value.trim();
+    if (!$('#r-title').value.trim()) { toast('اكتب عنوان المصدر'); return; }
     const list = db.get('resources', []);
-    list.unshift({ id: uid(), title: $('#r-title').value.trim(), subject: profile.subject, kind: simpleVal('r-kind') || 'ملف', url: /^https?:\/\//.test(url) ? url : '', fileData, fileName: file ? file.name : '', by: 'me', at: todayISO() });
-    try { db.set('resources', list); } catch { toast('ما قدرنا نحفظ الملف'); }
+    list.unshift({ id: uid(), title: $('#r-title').value.trim(), subject: profile.subject, kind: simpleVal('r-kind') || 'ملف', url: /^https?:\/\//.test(url) ? url : '', fileData, fileName: file ? file.name : '', by: myTeacherId(), at: todayISO() });
+    if (!db.set('resources', list)) { toast('المساحة ممتلئة: ارفع ملف أصغر أو حط رابط بدل الملف'); return; }
     renderPage('t-resources'); toast('انضاف المصدر وطلع للطلاب ✓');
     return;
   }
   if (f.matches('[data-hw-form]')) {
     e.preventDefault();
+    if (!$('#h-title').value.trim()) { toast('اكتب عنوان الواجب'); return; }
+    if (!$('#h-due').value || $('#h-due').value < todayISO()) { toast('اختر موعد من اليوم وطالع'); return; }
     const list = db.get('schoolTasks', []);
-    list.push({ id: uid(), title: $('#h-title').value.trim(), subject: profile.subject, kind: simpleVal('h-kind') || 'واجب', due: $('#h-due').value, by: 'me' });
+    list.push({ id: uid(), title: $('#h-title').value.trim(), subject: profile.subject, kind: simpleVal('h-kind') || 'واجب', due: $('#h-due').value, by: myTeacherId() });
     db.set('schoolTasks', list); renderPage('t-tasks'); toast('انضاف وطلع للطلاب ✓');
     return;
   }
@@ -1420,6 +1641,7 @@ document.addEventListener('submit', async (e) => {
   }
   if (f.matches('[data-news-form]')) {
     e.preventDefault();
+    if (!$('#n-title').value.trim()) { toast('اكتب العنوان'); return; }
     const list = db.get('news', []);
     list.unshift({ id: uid(), kind: simpleVal('n-kind') || 'خبر', title: $('#n-title').value.trim(), body: $('#n-body').value.trim(), deadline: $('#n-deadline').value, at: todayISO() });
     db.set('news', list); renderPage('a-news'); toast('انتشر للطلاب وأولياء الأمور ✓');
@@ -1427,18 +1649,19 @@ document.addEventListener('submit', async (e) => {
   }
   if (f.matches('[data-prizes-form]')) {
     e.preventDefault();
-    const list = [0, 1, 2].map((k) => $(`#p-${k}`).value.trim()).filter(Boolean);
-    if (list.some((x) => BAD_PRIZE.test(x))) { toast('هالجائزة تخالف تعليمات الوزارة. اختر شهادة أو قسيمة أو هدية'); return; }
+    const list = [0, 1, 2].map((k) => $(`#p-${k}`).value.trim().slice(0, 80));
+    if (!list.some(Boolean)) { toast('اكتب جائزة وحدة على الأقل'); return; }
+    if (list.some((x) => x && badPrize(x))) { toast('هالجائزة تخالف تعليمات الوزارة. اختر شهادة أو قسيمة أو هدية أو مبلغ'); return; }
     db.set('prizes', list); toast('انحفظت الجوائز ✓');
   }
 });
 
 document.addEventListener('change', (e) => {
   const t = e.target;
-  if (t.matches('[data-set-level]')) {
+  if (t.matches('[data-set-level]') && role() === 'teacher') {
     const v = t.value === '—' ? undefined : t.value;
     if (t.dataset.setLevel === 'me-student') { const l = db.get('levels', {}); l[profile.subject] = v; db.set('levels', l); }
-    else { const l = db.get('classLevels', {}); l[t.dataset.setLevel] = v; db.set('classLevels', l); }
+    else { const l = db.get('classLevels', {}); l[`${profile.subject}:${t.dataset.setLevel}`] = v; db.set('classLevels', l); }
     toast('انحفظ المستوى ✓');
   }
   if (t.matches('#post-file')) { const n = $('[data-post-file-name]'); if (n) n.textContent = t.files[0] ? `📎 ${t.files[0].name}` : ''; }
