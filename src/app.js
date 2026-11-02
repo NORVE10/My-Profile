@@ -63,6 +63,7 @@ function toast(msg) {
    ========================================================= */
 const ICONS = {
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/>',
   ai: '<path d="M12 3v2M12 19v2M5 12H3M21 12h-2"/><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M10 10h.01M14 10h.01M9.5 14c1.5 1 3.5 1 5 0"/>',
   plan: '<path d="M4 20V5"/><path d="M4 5h11l-2 3.5L15 12H4"/><circle cx="18" cy="18" r="2.5"/><path d="M4 20h9"/>',
   schedule: '<rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 3v3M16 3v3M8 14h3M8 17h6"/>',
@@ -98,10 +99,10 @@ const MODULES = [
   { id: 'community', title: 'المجتمع', desc: 'شارك محتوى وفيديوهات مع زملائك', tone: 'beige' },
   { id: 'messages', title: 'الرسائل', desc: 'زملاؤك ومعلموك والإدارة', tone: 'beige' },
   { id: 'feedback', title: 'اقتراحات للمعلمين', desc: 'رسائل لتطوير الشرح والحصص', tone: 'pink' },
-  { id: 'board', title: 'المنافسة', desc: 'ترتيبك في الفصل والمدرسة', tone: 'beige' },
+  { id: 'profile', title: 'بروفايلي', desc: 'اهتماماتك وكتبك وإنجازاتك', tone: 'beige' },
   { id: 'rewards', title: 'المحفزات', desc: 'نقاط وشارات وإنجازات', tone: 'maroon' },
 ];
-const ROUTES = ['home', 'plan', 'schedule', 'ai', 'board', 'community', 'messages', 'resources', 'grades', 'rewards', 'feedback', 'more', 't-tasks', 't-resources', 't-students', 't-feedback', 'a-news', 'a-reports', 'a-prizes', 'p-child'];
+const ROUTES = ['profile', 'home', 'plan', 'schedule', 'ai', 'board', 'community', 'messages', 'resources', 'grades', 'rewards', 'feedback', 'more', 't-tasks', 't-resources', 't-students', 't-feedback', 'a-news', 'a-reports', 'a-prizes', 'p-child'];
 const SIDEBAR = [
   { id: 'home', title: 'الرئيسية' },
   { id: 'plan', title: 'خطتي المستقبلية' },
@@ -729,8 +730,8 @@ async function generatePlan() {
 function renderLoading() {
   $('[data-view="plan"]').innerHTML = `
     <section class="loading" aria-live="polite">
-      <div class="loading__orb">${icon('spark')}</div>
-      <h2>نجهّز خطتك…</h2>
+      <div class="loading__sanad">${sanadSvg(88, 'is-thinking')}</div>
+      <h2 class="shiny">سند يجهّز خطتك…</h2>
       <ul class="loading__steps">
         <li>نقرأ حلمك وأهدافك</li>
         <li>نحسب الفرق بين نسبك الحالية واللي تبيها</li>
@@ -962,7 +963,7 @@ samplePromise.then(async (smp) => {
 
 function studentContext() {
   const a = state.answers;
-  if (!a) return 'الطالب ما عبّى خطته المستقبلية للحين (اقترح عليه يعبيها من «خطتي»).';
+  if (!a) return `الطالب ما عبّى خطته المستقبلية للحين (اقترح عليه يعبيها من «خطتي»).\nاهتماماته: ${sp().interests.join('، ') || 'ما حدد'}\nكتب قراها أو يقراها: ${sp().books.map((b) => `${b.title} (${b.status})`).join('، ') || 'ما سجّل'}`;
   const major = MAJORS[a.major] || MAJORS.other;
   const d = new Date().getDay();
   const today = state.plan ? state.plan.week[d].blocks.filter((b) => b.type !== 'free').map((b) => `${hhmm(b.start)} ${b.title}`).join('، ') : '';
@@ -974,10 +975,12 @@ function studentContext() {
     `يذاكر القدرات من ${sourceOf(a, 'qud')}، ومواد المدرسة من ${sourceOf(a, 'school')}`,
     `واجبات المدرسة: ${getSchoolTasks().map((t) => `${t.title} (${t.note})`).join(' | ')}`,
     `اليوم ${DAYS[d]}، وجدوله اليوم: ${today || 'ما فيه'}`,
+    `اهتماماته: ${sp().interests.join('، ') || 'ما حدد'}`,
+    `كتب قراها أو يقراها: ${sp().books.map((b) => `${b.title} (${b.status})`).join('، ') || 'ما سجّل'}`,
   ].join('\n');
 }
 
-const aiRules = () => `أنت «وشيجة»، مساعد دراسي ذكي لطلاب الثانوي في السعودية (المنهج السعودي، والقدرات والتحصيلي). تكلّم بعربي بسيط وقريب وودود.
+const aiRules = () => `أنت «سند»، المساعد الدراسي الذكي في منصة «وشيجة» لطلاب الثانوي في السعودية (المنهج السعودي، والقدرات والتحصيلي). تكلّم بعربي بسيط وقريب وودود.
 - لو طلب حل سؤال: اشرح الحل بخطوات مرقمة قصيرة، وبعدها اكتب «**الجواب النهائي:**».
 - لو أعطاك إجابته عشان تصححها: ابدأ بالحكم (✅ صح / ⚠️ صح جزئياً / ❌ خطأ)، وقل وين الخطأ بالضبط وكيف يصححه، وبعدها الإجابة النموذجية.
 - لو طلب تلميح: أعطه تلميح بس بدون الحل.
@@ -1010,7 +1013,7 @@ const QUICK = [
 
 function bubble(t, k) {
   if (t.role === 'user') return `<div class="msg msg--me">${t.image ? `<span class="msg__img">${icon('image')} صورة</span>` : ''}${fmtAi(t.content)}</div>`;
-  if (t.pending) return '<div class="msg msg--ai"><span class="typing"><i></i><i></i><i></i></span></div>';
+  if (t.pending) return `<div class="msg msg--ai msg--thinking">${sanadSvg(30, 'is-thinking')}<span class="shiny">سند يفكر…</span></div>`;
   const { clean, acts } = parseActions(t.content);
   return `<div class="msg msg--ai${t.error ? ' is-error' : ''}">${fmtAi(clean)}${acts.map((x, i) => {
     const done = (t.applied || []).includes(i);
@@ -1027,7 +1030,8 @@ function renderAi() {
     <section class="ai">
       ${off ? `<div class="note note--warn">${icon('spark')} المساعد الذكي مو مفعّل هنا للحين: يحتاج مفتاح الذكاء الاصطناعي في إعدادات الموقع، أو تفتح وشيجة من رابط Claude.</div>` : ''}
       <div class="chat" data-chat aria-live="polite">
-        <div class="msg msg--ai">هلا${(profile?.name || name) ? ` ${esc(profile?.name || name)}` : ''}! أنا وشيجة 👋<br>${aiWelcome()}${chat.canImages && role() === 'student' ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
+        <div class="chat__hello">${sanadSvg(64)}</div>
+        <div class="msg msg--ai">هلا${(profile?.name || name) ? ` ${esc(profile?.name || name)}` : ''}! أنا سند، مساعدك في وشيجة 👋<br>${aiWelcome()}${chat.canImages && role() === 'student' ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
         ${chat.turns.map((t, k) => bubble(t, k)).join('')}
       </div>
       <div class="quick" role="group" aria-label="اختصارات">
@@ -1266,5 +1270,5 @@ document.addEventListener('change', (e) => {
   compressImage(f).then((img) => { chat.image = img; renderAi(); });
 });
 
-window.addEventListener('hashchange', show);
+window.addEventListener('hashchange', () => navShow());
 

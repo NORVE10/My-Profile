@@ -13,7 +13,7 @@ def data_uri(name: str) -> str:
 html = (SRC / "index.html").read_text(encoding="utf-8")
 html = (
     html.replace("{{STYLE}}", (SRC / "styles.css").read_text(encoding="utf-8"))
-    .replace("{{SCRIPT}}", (SRC / "app.js").read_text(encoding="utf-8") + "\n" + (SRC / "more.js").read_text(encoding="utf-8"))
+    .replace("{{SCRIPT}}", (SRC / "app.js").read_text(encoding="utf-8") + "\n" + (SRC / "more.js").read_text(encoding="utf-8") + "\n" + (SRC / "fx.js").read_text(encoding="utf-8"))
     .replace("{{LOGO}}", data_uri("logo.png"))
     .replace("{{ICON}}", data_uri("icon.png"))
 )

@@ -733,3 +733,131 @@ body { overflow-wrap: anywhere; }
 .news--soft .eyebrow--light { color: var(--heading); }
 .slot__more.is-armed { color: #b3261e; font-size: 0.8rem; font-weight: 700; }
 .warn { background: var(--pink-soft); color: var(--heading); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.85rem; }
+
+/* =========================================================
+   أسطح المتصفح بلون وشيجة
+   ========================================================= */
+::selection { background: color-mix(in srgb, var(--coral) 32%, transparent); color: var(--ink); }
+html { accent-color: var(--coral); caret-color: var(--coral); scrollbar-color: color-mix(in srgb, var(--coral) 45%, transparent) transparent; }
+:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+
+/* =========================================================
+   الإضاءة عند التمرير (مستوحاة من SpotlightCard في React Bits)
+   ========================================================= */
+:is(.module, .card, .task, .slot__card, .more-item, .role, .stat, .news, .post, .res, .level, .day, .phase__card, .intro, .podium, .me-card, .threads button, .people button, .ask, .plan-card, .goal) {
+  position: relative; isolation: isolate;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+:is(.module, .card, .task, .slot__card, .more-item, .role, .stat, .news, .post, .res, .level, .day, .phase__card, .intro, .podium, .me-card, .threads button, .people button, .ask, .plan-card, .goal)::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; z-index: 2;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--coral) 22%, transparent), transparent 65%);
+  transition: opacity 0.25s ease;
+}
+.is-lit::after { opacity: 1; }
+:is(.module, .card, .task, .more-item, .role, .res, .level, .post, .threads button, .people button).is-lit { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--coral) 70%, transparent), 0 10px 28px -14px color-mix(in srgb, var(--coral) 60%, transparent); }
+.module.is-lit, .more-item.is-lit, .role.is-lit { transform: translateY(-2px); }
+.module--coral.is-lit::after, .plan-card.is-lit::after, .goal.is-lit::after, .me-card.is-lit::after, .news:not(.news--soft).is-lit::after {
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.16), transparent 65%);
+}
+.btn { transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease; }
+.btn:hover { filter: brightness(1.05); box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--coral) 70%, transparent); }
+.chip-opt:hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 18%, transparent); }
+.tabbar a, .sidebar__nav a { transition: color 0.2s ease, background-color 0.2s ease; }
+.tabbar a:hover { color: var(--coral); }
+.tabbar a.is-active svg { animation: tab-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes tab-pop { 0% { transform: scale(0.8); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* شرارة الإنجاز (ClickSpark) */
+.spark-layer { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 60; }
+
+/* نص يلمع أثناء الانتظار (ShinyText) */
+.shiny {
+  background: linear-gradient(100deg, var(--heading) 35%, color-mix(in srgb, var(--coral) 70%, #fff) 50%, var(--heading) 65%);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shine 1.8s linear infinite;
+}
+.shiny--light { background-image: linear-gradient(100deg, #fff 35%, #ffd9d0 50%, #fff 65%); }
+@keyframes shine { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+/* =========================================================
+   سند
+   ========================================================= */
+.sanad { display: block; overflow: visible; flex: none; stroke: none; }
+.sanad__pupils { transition: transform 0.18s ease-out; }
+.sanad__eyes { transform-origin: 32px 28px; animation: blink 5s infinite; }
+@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+.sanad.is-thinking .sanad__pupils { animation: think 1.6s ease-in-out infinite; }
+@keyframes think { 0%, 100% { transform: translate(-2px, -2px); } 50% { transform: translate(2px, -2px); } }
+.sanad.is-talking .sanad__body { animation: talk 0.9s ease-in-out infinite; transform-origin: 32px 58px; }
+@keyframes talk { 50% { transform: scale(1.03, 0.97); } }
+.sanad-dock { position: fixed; z-index: 15; bottom: calc(84px + env(safe-area-inset-bottom)); inset-inline-end: 14px; display: grid; justify-items: end; gap: 8px; }
+.sanad-btn { border: 0; background: none; padding: 0; cursor: pointer; filter: drop-shadow(0 8px 14px rgba(98, 42, 39, 0.28)); animation: bob 3.2s ease-in-out infinite; }
+.sanad-btn:hover { transform: scale(1.06); }
+@keyframes bob { 50% { transform: translateY(-5px); } }
+.sanad-menu { order: -1; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; box-shadow: var(--shadow); display: grid; gap: 8px; width: 220px; }
+.sanad-menu p { font-size: 0.9rem; color: var(--ink); }
+.sanad-menu .link { background: none; border: 0; font: inherit; color: var(--muted); }
+.chat__hello { justify-self: center; animation: bob 3.2s ease-in-out infinite; }
+.msg--thinking { display: flex; align-items: center; gap: 8px; }
+.loading__sanad { animation: bob 2.4s ease-in-out infinite; }
+@media (min-width: 1000px) { .sanad-dock { bottom: 24px; } }
+
+/* جولة سند */
+.tour { position: fixed; inset: 0; z-index: 50; }
+.tour__hole { position: fixed; border-radius: 18px; box-shadow: 0 0 0 200vmax rgba(30, 14, 12, 0.58); transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.tour__guide { position: fixed; top: 0; left: 0; width: min(340px, calc(100vw - 20px)); display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
+.tour__guide.is-above { align-items: end; }
+.tour__bubble { background: var(--surface); color: var(--ink); border-radius: 18px; padding: 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3); display: grid; gap: 10px; animation: pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.tour__bubble p { line-height: 1.7; font-size: 0.95rem; }
+.tour__nav { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.tour__nav small { margin-inline-end: auto; color: var(--muted); }
+.tour__nav .link { background: none; border: 0; font: inherit; color: var(--muted); }
+@keyframes pop-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+
+/* =========================================================
+   البروفايل
+   ========================================================= */
+.profile-head { display: grid; gap: 14px; }
+.profile-head .btn { justify-self: start; }
+.profile-head__top { display: flex; align-items: center; gap: 14px; }
+.profile-head__top h2 { color: var(--heading); font-size: 1.35rem; }
+.profile-head__top small { color: var(--muted); }
+.profile-avatar { width: 64px; height: 64px; border-radius: 22px; background: var(--coral); color: #fff; display: grid; place-items: center; font-size: 1.7rem; font-weight: 700; flex: none; box-shadow: 0 8px 20px -8px var(--coral); }
+.profile-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+.profile-stats div { background: var(--pink-soft); border-radius: var(--radius-sm); padding: 10px 4px; }
+.profile-stats strong { display: block; color: var(--heading); font-size: 1.25rem; }
+.profile-stats small { color: var(--muted); font-size: 0.74rem; }
+.chip-x { display: inline-flex; align-items: center; gap: 6px; }
+.chip-x button { border: 0; background: rgba(255, 255, 255, 0.25); color: inherit; width: 20px; height: 20px; border-radius: 50%; line-height: 1; font: inherit; }
+.inline-add { display: flex; gap: 8px; margin: 10px 0; }
+.inline-add .input { padding: 8px 12px; }
+.books { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 10px; }
+.book { display: flex; gap: 12px; align-items: flex-start; background: var(--cream); border-radius: var(--radius-sm); padding: 10px 12px; }
+.book > div { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.book small { color: var(--muted); font-size: 0.78rem; }
+.book p { font-size: 0.85rem; }
+.book__spine { width: 34px; height: 46px; border-radius: 4px 8px 8px 4px; background: linear-gradient(90deg, var(--maroon) 0 18%, var(--coral) 18%); color: #fff; display: grid; place-items: center; font-weight: 700; flex: none; }
+.stars i { font-style: normal; color: var(--line); }
+.stars i.on { color: #e6a23c; }
+.book-form { border-top: 1px dashed var(--line); padding-top: 14px; }
+@media (max-width: 480px) { .profile-stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* =========================================================
+   الانتقال بين الصفحات
+   ========================================================= */
+.sidebar { view-transition-name: sidebar; }
+.tabbar { view-transition-name: tabbar; }
+::view-transition-old(root) { animation: vt-out 0.16s ease-in both; }
+::view-transition-new(root) { animation: vt-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes vt-out { to { opacity: 0; filter: blur(3px); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(10px); filter: blur(3px); } }
+.sheet:not([hidden]) .sheet__panel { animation: sheet-in 0.32s cubic-bezier(0.16, 1, 0.3, 1); }
+.sheet:not([hidden]) .sheet__backdrop { animation: fade-in 0.2s ease; }
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } }
+@keyframes fade-in { from { opacity: 0; } }
+.toast.is-on { transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+}
