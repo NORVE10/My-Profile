@@ -56,7 +56,11 @@ function sparkAt(x, y, count = 10) {
 // نطلق الشرارة لما الطالب يخلّص جلسة أو يسلّم واجب أو ينشر
 document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-slot][aria-pressed="false"], [data-submit]:not(.is-done), [data-post-form] button[type=submit], [data-act]:not([disabled])');
-  if (t) sparkAt(e.clientX, e.clientY);
+  if (t) {
+    sparkAt(e.clientX, e.clientY);
+    const d = $('[data-wishaj]');
+    if (d) { d.classList.remove('is-happy'); void d.offsetWidth; d.classList.add('is-happy'); setTimeout(() => d.classList.remove('is-happy'), 900); }
+  }
 }, true);
 
 /* =========================================================
@@ -103,9 +107,15 @@ function wishajSvg(size = 56, mood = '') {
     </g></g>
   </svg>`;
 }
-// العيون تطالع الماوس
+// العيون تطالع الماوس (وشاج يتفاعل حتى لو «تقليل الحركة» مفعّل، لأنه حركة صغيرة يتحكم فيها المستخدم بالماوس)
+let idleTimer = 0;
 document.addEventListener('pointermove', (e) => {
-  if (reducedMotion()) return;
+  const dock = $('[data-wishaj]');
+  if (dock) {
+    dock.classList.remove('is-idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => dock.classList.add('is-idle'), 4000); // لو وقفت، يطالع حوله
+  }
   $$('.wishaj__look').forEach((g) => {
     const r = g.closest('svg').getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
@@ -116,7 +126,7 @@ document.addEventListener('pointermove', (e) => {
 
 /* ---------- وشاج يلحق الماوس (على الكمبيوتر) ---------- */
 const follow = { x: 0, y: 0, tx: 0, ty: 0, on: false, raf: 0, frozen: false, last: 0 };
-const canFollow = () => matchMedia('(pointer: fine)').matches && !reducedMotion();
+const canFollow = () => matchMedia('(pointer: fine), (hover: hover)').matches && !db.get('wishajStay', false);
 function placeDock() {
   const el = $('[data-wishaj]');
   if (!el) return;
@@ -138,7 +148,7 @@ function followTick(now) {
 function wakeFollow() { if (!follow.raf) { follow.last = 0; follow.raf = requestAnimationFrame(followTick); } }
 document.addEventListener('pointermove', (e) => {
   const el = $('[data-wishaj]');
-  if (!el || el.hidden || e.pointerType !== 'mouse' || !canFollow() || tour) return;
+  if (!el || el.hidden || (e.pointerType && e.pointerType !== 'mouse') || !canFollow() || tour) return;
   if (!follow.on) {
     const r = el.getBoundingClientRect();
     follow.x = r.left; follow.y = r.top; follow.on = true;
@@ -175,7 +185,7 @@ function renderWishajDock() {
   const hide = !profile || currentRoute() === 'ai' || db.get('wishajHidden', false);
   el.hidden = hide;
   if (hide) return;
-  if (!el.innerHTML) el.innerHTML = `<button type="button" class="wishaj-btn" data-wishaj-open aria-label="وشاج، مساعدك">${wishajSvg(48)}</button><div class="wishaj-menu" data-wishaj-menu hidden></div>`;
+  if (!el.innerHTML) el.innerHTML = `<span class="wishaj-hi" aria-hidden="true">هلا! اضغطني 👋</span><button type="button" class="wishaj-btn" data-wishaj-open aria-label="وشاج، مساعدك">${wishajSvg(48)}</button><div class="wishaj-menu" data-wishaj-menu hidden></div>`;
 }
 function openWishajMenu() {
   const m = $('[data-wishaj-menu]');
@@ -185,6 +195,7 @@ function openWishajMenu() {
     <p><b>أنا وشاج</b>، مساعدك في وشيجة.</p>
     <button type="button" class="btn btn--coral btn--sm" data-route="ai">اسألني أي شي</button>
     ${TOURS[tourKey()] ? '<button type="button" class="btn btn--ghost btn--sm" data-tour-start>جولة في الصفحة</button>' : ''}
+    <button type="button" class="link" data-wishaj-stay>${db.get('wishajStay', false) ? 'خلني ألحقك' : 'خلني في مكاني'}</button>
     <button type="button" class="link" data-wishaj-hide>اخفيني</button>`;
   m.hidden = false;
   // القائمة تفتح للجهة اللي فيها مكان
@@ -242,7 +253,7 @@ function startTour() {
   layer.innerHTML = `<div class="tour__hole"></div><div class="tour__guide">${wishajSvg(64, 'is-talking')}<div class="tour__bubble" role="dialog" aria-live="polite"><p></p><div class="tour__nav"><small></small><button type="button" class="link" data-tour-skip>تخطّي</button><button type="button" class="btn btn--coral btn--sm" data-tour-next>التالي</button></div></div></div>`;
   document.body.appendChild(layer);
   tour = { steps, i: -1, layer };
-  db.set('tourDone:' + tourKey(), true);
+  db.set('tour2:' + tourKey(), true);
   nextTourStep();
 }
 function nextTourStep() {
@@ -273,7 +284,7 @@ function nextTourStep() {
 }
 function closeTour() { if (tour) { tour.layer.remove(); tour = null; } }
 function maybeAutoTour() {
-  if (!profile || tour || db.get('tourDone:' + tourKey(), false) || !TOURS[tourKey()]) return;
+  if (!profile || tour || db.get('tour2:' + tourKey(), false) || !TOURS[tourKey()]) return;
   if (currentRoute() !== 'home') return; // التلقائية في الرئيسية بس، وباقي الصفحات من قائمة وشاج
   setTimeout(() => { if (!tour && !$('[data-sheet]:not([hidden])')) startTour(); }, 900);
 }
@@ -351,6 +362,11 @@ function pageProfile() {
 document.addEventListener('click', (e) => {
   const t = e.target;
   if (t.closest('[data-wishaj-open]')) { openWishajMenu(); return; }
+  if (t.closest('[data-wishaj-stay]')) {
+    const stay = !db.get('wishajStay', false); db.set('wishajStay', stay);
+    if (stay) { const el = $('[data-wishaj]'); follow.on = false; el.classList.remove('is-following', 'is-moving'); el.style.transform = ''; }
+    $('[data-wishaj-menu]').hidden = true; toast(stay ? 'بقعد هنا 👍' : 'بلحقك 👀'); return;
+  }
   if (t.closest('[data-wishaj-hide]')) { db.set('wishajHidden', true); renderWishajDock(); toast('تقدر ترجّعني من «المزيد» 👋'); return; }
   if (t.closest('[data-wishaj-show]')) { db.set('wishajHidden', false); renderWishajDock(); toast('رجعت 👋'); return; }
   if (t.closest('[data-tour-start]')) { startTour(); return; }

@@ -867,3 +867,17 @@ html { accent-color: var(--coral); caret-color: var(--coral); scrollbar-color: c
   *, *::before, *::after { animation: none !important; transition: none !important; }
   ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
 }
+
+/* وشاج يتفاعل مع الماوس */
+.wishaj-btn:hover .wishaj__eyes { animation: none; transform: scaleY(1.15); }
+.wishaj-hi { position: absolute; bottom: calc(100% + 6px); inset-inline-end: 0; white-space: nowrap; background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 12px; padding: 4px 10px; font-size: 0.8rem; font-weight: 600; opacity: 0; transform: translateY(4px); transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.wishaj-dock:has(.wishaj-btn:hover) .wishaj-hi { opacity: 1; transform: none; }
+.wishaj-dock:has(.wishaj-menu:not([hidden])) .wishaj-hi { opacity: 0; }
+.wishaj-dock.is-idle .wishaj__look { animation: look-around 3.5s ease-in-out infinite; }
+@keyframes look-around { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-2.5px, -1px); } 60% { transform: translate(2.5px, 0); } }
+.wishaj-dock.is-happy .wishaj-btn { animation: hop 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes hop { 30% { transform: translateY(-10px) scale(1.05); } 60% { transform: translateY(0) scale(0.97); } }
+/* حتى مع «تقليل الحركة»: العيون تلاحق الماوس ووشاج يلحقك (طلبها المستخدم)، بس بدون قفز */
+@media (prefers-reduced-motion: reduce) {
+  .wishaj__look { transition: transform 0.15s linear !important; }
+}
