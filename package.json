@@ -1,0 +1,11 @@
+{
+  "name": "washijah",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle": "python3 build.py"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.136.0"
+  }
+}
