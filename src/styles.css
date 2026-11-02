@@ -733,3 +733,151 @@ body { overflow-wrap: anywhere; }
 .news--soft .eyebrow--light { color: var(--heading); }
 .slot__more.is-armed { color: #b3261e; font-size: 0.8rem; font-weight: 700; }
 .warn { background: var(--pink-soft); color: var(--heading); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.85rem; }
+
+/* =========================================================
+   أسطح المتصفح بلون وشيجة
+   ========================================================= */
+::selection { background: color-mix(in srgb, var(--coral) 32%, transparent); color: var(--ink); }
+html { accent-color: var(--coral); caret-color: var(--coral); scrollbar-color: color-mix(in srgb, var(--coral) 45%, transparent) transparent; }
+:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+
+/* =========================================================
+   الإضاءة عند التمرير (مستوحاة من SpotlightCard في React Bits)
+   ========================================================= */
+:is(.module, .card, .task, .slot__card, .more-item, .role, .stat, .news, .post, .res, .level, .day, .phase__card, .intro, .podium, .me-card, .threads button, .people button, .ask, .plan-card, .goal) {
+  position: relative; isolation: isolate;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+:is(.module, .card, .task, .slot__card, .more-item, .role, .stat, .news, .post, .res, .level, .day, .phase__card, .intro, .podium, .me-card, .threads button, .people button, .ask, .plan-card, .goal)::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; z-index: 2;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--coral) 22%, transparent), transparent 65%);
+  transition: opacity 0.25s ease;
+}
+.is-lit::after { opacity: 1; }
+:is(.module, .card, .task, .more-item, .role, .res, .level, .post, .threads button, .people button).is-lit { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--coral) 70%, transparent), 0 10px 28px -14px color-mix(in srgb, var(--coral) 60%, transparent); }
+.module.is-lit, .more-item.is-lit, .role.is-lit { transform: translateY(-2px); }
+.module--coral.is-lit::after, .plan-card.is-lit::after, .goal.is-lit::after, .me-card.is-lit::after, .news:not(.news--soft).is-lit::after {
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.16), transparent 65%);
+}
+.btn { transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease; }
+.btn:hover { filter: brightness(1.05); box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--coral) 70%, transparent); }
+.chip-opt:hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 18%, transparent); }
+.tabbar a, .sidebar__nav a { transition: color 0.2s ease, background-color 0.2s ease; }
+.tabbar a:hover { color: var(--coral); }
+.tabbar a.is-active svg { animation: tab-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes tab-pop { 0% { transform: scale(0.8); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* شرارة الإنجاز (ClickSpark) */
+.spark-layer { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 60; }
+
+/* نص يلمع أثناء الانتظار (ShinyText) */
+.shiny {
+  background: linear-gradient(100deg, var(--heading) 35%, color-mix(in srgb, var(--coral) 70%, #fff) 50%, var(--heading) 65%);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shine 1.8s linear infinite;
+}
+.shiny--light { background-image: linear-gradient(100deg, #fff 35%, #ffd9d0 50%, #fff 65%); }
+@keyframes shine { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+/* =========================================================
+   وشاج
+   ========================================================= */
+.wishaj { display: block; overflow: visible; flex: none; stroke: none; }
+.wishaj__look { transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.wishaj__eyes { transform-origin: 32px 30px; animation: blink 6s infinite; }
+@keyframes blink { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.12); } }
+/* يفكر: العيون تضيق وتتحرك يمين ويسار */
+.wishaj.is-thinking .wishaj__eyes { animation: think-eyes 1.4s ease-in-out infinite; }
+@keyframes think-eyes { 0%, 100% { transform: translateX(-2.5px) scaleY(0.55); } 50% { transform: translateX(2.5px) scaleY(0.55); } }
+/* يتكلم في الجولة: العيون تنبض بهدوء */
+.wishaj.is-talking .wishaj__eyes { animation: talk-eyes 1.1s ease-in-out infinite; }
+@keyframes talk-eyes { 50% { transform: scaleY(0.82); } }
+.wishaj-dock { position: fixed; z-index: 15; bottom: calc(84px + env(safe-area-inset-bottom)); inset-inline-end: 14px; display: grid; justify-items: end; gap: 8px; }
+.wishaj-dock.is-following { top: 0; left: 0; bottom: auto; right: auto; will-change: transform; }
+.wishaj-btn { border: 0; background: none; padding: 0; cursor: pointer; border-radius: 50%; filter: drop-shadow(0 8px 16px rgba(58, 23, 21, 0.35)); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease; }
+.wishaj-btn:hover { transform: scale(1.08); filter: drop-shadow(0 0 0.5px #e9806f) drop-shadow(0 10px 20px rgba(213, 96, 79, 0.45)); }
+.wishaj-dock.is-moving .wishaj-btn { transform: scale(0.94); }
+.wishaj-menu { position: absolute; bottom: calc(100% + 10px); inset-inline-end: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; box-shadow: var(--shadow); display: grid; gap: 8px; width: 220px; animation: pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+.wishaj-menu.is-below { bottom: auto; top: calc(100% + 10px); }
+.wishaj-dock.is-following .wishaj-menu.is-start { inset-inline-end: auto; left: 0; }
+.wishaj-dock.is-following .wishaj-menu:not(.is-start) { inset-inline-end: auto; right: 0; }
+.wishaj-menu p { font-size: 0.9rem; color: var(--ink); }
+.wishaj-menu .link { background: none; border: 0; font: inherit; color: var(--muted); }
+.chat__hello { justify-self: center; }
+.msg--thinking { display: flex; align-items: center; gap: 8px; }
+.loading__wishaj { filter: drop-shadow(0 14px 24px rgba(58, 23, 21, 0.3)); }
+@media (min-width: 1000px) { .wishaj-dock:not(.is-following) { bottom: 24px; } }
+
+/* جولة وشاج */
+.tour { position: fixed; inset: 0; z-index: 50; }
+.tour__hole { position: fixed; border-radius: 18px; box-shadow: 0 0 0 200vmax rgba(30, 14, 12, 0.58); transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.tour__guide { position: fixed; top: 0; left: 0; width: min(340px, calc(100vw - 20px)); display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
+.tour__guide.is-above { align-items: end; }
+.tour__bubble { background: var(--surface); color: var(--ink); border-radius: 18px; padding: 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3); display: grid; gap: 10px; animation: pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.tour__bubble p { line-height: 1.7; font-size: 0.95rem; }
+.tour__nav { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.tour__nav small { margin-inline-end: auto; color: var(--muted); }
+.tour__nav .link { background: none; border: 0; font: inherit; color: var(--muted); }
+@keyframes pop-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+
+/* =========================================================
+   البروفايل
+   ========================================================= */
+.profile-head { display: grid; gap: 14px; }
+.profile-head .btn { justify-self: start; }
+.profile-head__top { display: flex; align-items: center; gap: 14px; }
+.profile-head__top h2 { color: var(--heading); font-size: 1.35rem; }
+.profile-head__top small { color: var(--muted); }
+.profile-avatar { width: 64px; height: 64px; border-radius: 22px; background: var(--coral); color: #fff; display: grid; place-items: center; font-size: 1.7rem; font-weight: 700; flex: none; box-shadow: 0 8px 20px -8px var(--coral); }
+.profile-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+.profile-stats div { background: var(--pink-soft); border-radius: var(--radius-sm); padding: 10px 4px; }
+.profile-stats strong { display: block; color: var(--heading); font-size: 1.25rem; }
+.profile-stats small { color: var(--muted); font-size: 0.74rem; }
+.chip-x { display: inline-flex; align-items: center; gap: 6px; }
+.chip-x button { border: 0; background: rgba(255, 255, 255, 0.25); color: inherit; width: 20px; height: 20px; border-radius: 50%; line-height: 1; font: inherit; }
+.inline-add { display: flex; gap: 8px; margin: 10px 0; }
+.inline-add .input { padding: 8px 12px; }
+.books { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 10px; }
+.book { display: flex; gap: 12px; align-items: flex-start; background: var(--cream); border-radius: var(--radius-sm); padding: 10px 12px; }
+.book > div { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.book small { color: var(--muted); font-size: 0.78rem; }
+.book p { font-size: 0.85rem; }
+.book__spine { width: 34px; height: 46px; border-radius: 4px 8px 8px 4px; background: linear-gradient(90deg, var(--maroon) 0 18%, var(--coral) 18%); color: #fff; display: grid; place-items: center; font-weight: 700; flex: none; }
+.stars i { font-style: normal; color: var(--line); }
+.stars i.on { color: #e6a23c; }
+.book-form { border-top: 1px dashed var(--line); padding-top: 14px; }
+@media (max-width: 480px) { .profile-stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* =========================================================
+   الانتقال بين الصفحات
+   ========================================================= */
+.sidebar { view-transition-name: sidebar; }
+.tabbar { view-transition-name: tabbar; }
+::view-transition-old(root) { animation: vt-out 0.16s ease-in both; }
+::view-transition-new(root) { animation: vt-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes vt-out { to { opacity: 0; filter: blur(3px); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(10px); filter: blur(3px); } }
+.sheet:not([hidden]) .sheet__panel { animation: sheet-in 0.32s cubic-bezier(0.16, 1, 0.3, 1); }
+.sheet:not([hidden]) .sheet__backdrop { animation: fade-in 0.2s ease; }
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } }
+@keyframes fade-in { from { opacity: 0; } }
+.toast.is-on { transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+}
+
+/* وشاج يتفاعل مع الماوس */
+.wishaj-btn:hover .wishaj__eyes { animation: none; transform: scaleY(1.15); }
+.wishaj-hi { position: absolute; bottom: calc(100% + 6px); inset-inline-end: 0; white-space: nowrap; background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 12px; padding: 4px 10px; font-size: 0.8rem; font-weight: 600; opacity: 0; transform: translateY(4px); transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.wishaj-dock:has(.wishaj-btn:hover) .wishaj-hi { opacity: 1; transform: none; }
+.wishaj-dock:has(.wishaj-menu:not([hidden])) .wishaj-hi { opacity: 0; }
+.wishaj-dock.is-idle .wishaj__look { animation: look-around 3.5s ease-in-out infinite; }
+@keyframes look-around { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-2.5px, -1px); } 60% { transform: translate(2.5px, 0); } }
+.wishaj-dock.is-happy .wishaj-btn { animation: hop 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes hop { 30% { transform: translateY(-10px) scale(1.05); } 60% { transform: translateY(0) scale(0.97); } }
+/* حتى مع «تقليل الحركة»: العيون تلاحق الماوس ووشاج يلحقك (طلبها المستخدم)، بس بدون قفز */
+@media (prefers-reduced-motion: reduce) {
+  .wishaj__look { transition: transform 0.15s linear !important; }
+}

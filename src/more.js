@@ -396,7 +396,7 @@ function toggleTheme() {
 const NAV = {
   student: {
     tabs: [['home', 'الرئيسية', 'home'], ['schedule', 'جدولي', 'schedule'], ['ai', 'المساعد', 'ai'], ['community', 'المجتمع', 'community'], ['more', 'المزيد', 'more']],
-    side: [['home', 'الرئيسية', 'home'], ['plan', 'خطتي المستقبلية', 'plan'], ['schedule', 'جدولي', 'schedule'], ['ai', 'المساعد الذكي', 'ai'], ['focus', 'ركّز', 'focus'], ['board', 'المنافسة', 'board'],
+    side: [['home', 'الرئيسية', 'home'], ['profile', 'بروفايلي', 'user'], ['plan', 'خطتي المستقبلية', 'plan'], ['schedule', 'جدولي', 'schedule'], ['ai', 'المساعد الذكي', 'ai'], ['focus', 'ركّز', 'focus'], ['board', 'المنافسة', 'board'],
       ['community', 'المجتمع', 'community'], ['messages', 'الرسائل', 'messages'], ['resources', 'المصادر', 'resources'], ['grades', 'مستواي ودرجاتي', 'level'], ['rewards', 'المحفزات', 'rewards'], ['feedback', 'اقتراحات للمعلمين', 'feedback']],
   },
   teacher: {
@@ -437,13 +437,13 @@ function renderChrome() {
 const HERO_MORE = {
   community: ['المجتمع', 'شارك وتعلّم مع زملائك'], messages: ['الرسائل', 'زملاؤك ومعلموك والإدارة'], resources: ['المصادر', 'كل اللي نزّله معلموك'],
   grades: ['مستواي', 'درجاتك ومستواك في كل مادة'], rewards: ['المحفزات', 'نقاطك، غابتك، وشاراتك'], feedback: ['اقتراحات للمعلمين', 'ساعد معلمك يطوّر الشرح'],
-  more: ['المزيد', 'كل خانات وشيجة'], news: ['أخبار المدرسة', 'الأخبار والمسابقات والإعلانات'], 't-tasks': ['الواجبات والاختبارات', 'تطلع لطلابك مباشرة'], 't-resources': ['المصادر', 'ملفات وروابط وفيديوهات لطلابك'],
+  more: ['المزيد', 'كل خانات وشيجة'], profile: ['بروفايلي', 'اهتماماتك وكتبك وإنجازاتك'], news: ['أخبار المدرسة', 'الأخبار والمسابقات والإعلانات'], 't-tasks': ['الواجبات والاختبارات', 'تطلع لطلابك مباشرة'], 't-resources': ['المصادر', 'ملفات وروابط وفيديوهات لطلابك'],
   't-students': ['مستوى طلابي', 'حدّد مستوى كل طالب في مادتك'], 't-feedback': ['اقتراحات الطلاب', 'وش يقولون عن الشرح'], 'a-news': ['الأخبار والمسابقات', 'تطلع للطلاب وأولياء الأمور'],
   'a-reports': ['تقارير المدرسة', 'نظرة سريعة على المدرسة'], 'a-prizes': ['جوائز المنافسة', 'وش يكسب الأوائل'], 'p-child': ['مستوى ولدي', ''],
 };
 
 const ALLOWED = {
-  student: ['home', 'plan', 'schedule', 'ai', 'board', 'community', 'messages', 'resources', 'grades', 'rewards', 'feedback', 'more', 'news'],
+  student: ['home', 'plan', 'schedule', 'ai', 'board', 'community', 'messages', 'resources', 'grades', 'rewards', 'feedback', 'more', 'news', 'profile'],
   teacher: ['home', 't-tasks', 't-resources', 't-students', 't-feedback', 'messages', 'ai'],
   parent: ['home', 'p-child', 'messages', 'ai', 'news'],
   admin: ['home', 'a-news', 'a-prizes', 'a-reports', 'community', 'messages', 'ai', 'board'],
@@ -489,6 +489,9 @@ function show() {
   if (route === 'board') renderBoardView();
   if (view === 'page') renderPage(route);
   window.scrollTo({ top: 0 });
+  renderWishajDock();
+  runCountUps();
+  maybeAutoTour();
 }
 
 /* =========================================================
@@ -609,11 +612,12 @@ function renderStudentHome() {
   const hours = Math.round((weekFocusMinutes() / 60) * 10) / 10;
   $('[data-stats]').innerHTML = `
     <div class="stat"><small>الواجبات المسلّمة</small><strong>${ar(doneHw)} / ${ar(hw.length)}</strong></div>
-    <div class="stat"><small>اختبارات قادمة</small><strong>${ar(exams)}</strong></div>
+    <div class="stat"><small>اختبارات قادمة</small><strong>${cu(exams, '', 'h-exams')}</strong></div>
     <div class="stat"><small>ساعات التركيز هالأسبوع</small><strong>${ar(hours)}</strong></div>
-    <div class="stat"><small>معدل درجاتك</small><strong>${ar(avg)}٪</strong></div>`;
+    <div class="stat"><small>معدل درجاتك</small><strong>${cu(avg, '٪', 'h-avg')}</strong></div>`;
   renderBoard(boardKind);
   drawTimer();
+  runCountUps($('[data-stats]'));
 }
 
 /* =========================================================
@@ -722,7 +726,7 @@ function renderSchedule() {
     ${state.plan ? `<section class="card ai-edit">
       <div class="block__head"><h2>${icon('spark')} اطلب من الذكاء الاصطناعي يعدّل جدولك</h2></div>
       <textarea id="sched-req" class="input" data-sched-req rows="2" maxlength="300" placeholder="مثلاً: أبي أخفف يوم الخميس، أو زد وقت الفيزياء">${esc(state.schedReq || '')}</textarea>
-      <button type="button" class="btn btn--coral" data-sched-ai ${state.schedBusy ? 'disabled' : ''}>${state.schedBusy ? 'يعدّل جدولك…' : 'عدّل جدولي'}</button>
+      <button type="button" class="btn btn--coral" data-sched-ai ${state.schedBusy ? 'disabled' : ''}>${state.schedBusy ? '<span class="shiny shiny--light">وشاج يعدّل جدولك…</span>' : 'عدّل جدولي'}</button>
     </section>` : ''}
 
     <section class="private">
@@ -930,7 +934,7 @@ function renderPage(route) {
   const fn = {
     home: { teacher: teacherHome, parent: parentHome, admin: adminHome }[r],
     community: pageCommunity, messages: pageMessages, resources: pageResources, grades: pageGrades, rewards: pageRewards,
-    feedback: pageFeedback, more: pageMore, news: pageNews, 't-tasks': pageTeacherTasks, 't-resources': pageResources, 't-students': pageTeacherStudents,
+    feedback: pageFeedback, more: pageMore, news: pageNews, profile: pageProfile, 't-tasks': pageTeacherTasks, 't-resources': pageResources, 't-students': pageTeacherStudents,
     't-feedback': pageTeacherFeedback, 'a-news': pageAdminNews, 'a-reports': pageAdminReports, 'a-prizes': pageAdminPrizes, 'p-child': pageParentChild,
   }[route];
   el.innerHTML = fn ? fn() : '<section class="intro"><h2>هالصفحة مو متاحة لهالحساب</h2><a class="btn btn--coral" href="#home" data-route="home">الرئيسية</a></section>';
@@ -943,6 +947,8 @@ const sectionHead = (title, extra = '') => `<div class="block__head"><h2>${title
 function pageMore() {
   return `<section class="more-grid">${NAV.student.side.filter(([id]) => id !== 'home').map(([id, title, ic]) =>
     `<a class="more-item" href="#${id}" ${id === 'focus' ? 'data-focus' : `data-route="${id}"`}>${icon(ic)}<span>${title}</span></a>`).join('')}
+    <button type="button" class="more-item" data-tour-start>${wishajSvg(30)}<span>جولة مع وشاج</span></button>
+    ${db.get('wishajHidden', false) ? `<button type="button" class="more-item" data-wishaj-show>${wishajSvg(30)}<span>رجّع وشاج</span></button>` : ''}
     <button type="button" class="more-item" data-theme-toggle>${icon(isDark() ? 'sun' : 'moon')}<span>${isDark() ? 'الوضع الفاتح' : 'الوضع الداكن'}</span></button>
     <button type="button" class="more-item" data-switch>${icon('back')}<span>تبديل الحساب</span></button></section>`;
 }
@@ -1126,7 +1132,7 @@ function pageRewards() {
   ];
   return `
     <section class="points card">
-      <div><small>نقاطك</small><strong>${ar(total)}</strong></div>
+      <div><small>نقاطك</small><strong>${cu(total, '', 'rw-points')}</strong></div>
       <div><small>الستريك</small><strong>🔥 ${ar(streak)}</strong></div>
       <div><small>غابتك</small><strong>🌳 ${ar(trees)}</strong></div>
     </section>
@@ -1321,7 +1327,7 @@ function roleRules() {
   const who = r === 'teacher' ? `معلم ${profile.subject} اسمه ${profile.name} في مدرسة ثانوية سعودية`
     : r === 'admin' ? `${profile.position || 'مدير المدرسة'} اسمه ${profile.name} في مدرسة ثانوية سعودية`
       : `ولي أمر اسمه ${profile.name}، وولده ${profile.child || 'عبدالله'} في ${myClassName()}. مستوى ولده: ${JSON.stringify(db.get('levels', {}))}. لا تعطيه تفاصيل خطة ولده المستقبلية لأنها خاصة.`;
-  return `أنت «وشيجة»، مساعد ذكي داخل منصة مدرسية سعودية. تكلّم بعربي بسيط وودود، وخل الرد قصير وواضح بسطور قصيرة، واستخدم **للعريض** و- للقوائم، وبدون جداول.
+  return `أنت «وشاج»، المساعد الذكي داخل منصة «وشيجة» المدرسية السعودية. تكلّم بعربي بسيط وودود، وخل الرد قصير وواضح بسطور قصيرة، واستخدم **للعريض** و- للقوائم، وبدون جداول.
 المستخدم: ${who}.
 ${ACTION_RULES[r]}
 ${today}`;
@@ -1667,12 +1673,3 @@ document.addEventListener('change', (e) => {
   if (t.matches('#post-file')) { const n = $('[data-post-file-name]'); if (n) n.textContent = t.files[0] ? `📎 ${t.files[0].name}` : ''; }
 });
 
-/* =========================================================
-   البداية
-   ========================================================= */
-if (state.plan && (!Array.isArray(state.plan.week) || state.plan.week.length !== 7 || !state.answers)) { state.plan = null; }
-if (profile) { seed(); migrate(); }
-chat.turns = db.get('chat:' + (role() || 'student'), chat.turns);
-renderChrome();
-if (focus) { if (Date.now() >= focus.endAt) finishFocus(); else runFocusTick(); }
-show();
