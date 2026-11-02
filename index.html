@@ -794,29 +794,35 @@ html { accent-color: var(--coral); caret-color: var(--coral); scrollbar-color: c
 @keyframes shine { from { background-position: 120% 0; } to { background-position: -120% 0; } }
 
 /* =========================================================
-   سند
+   وشاج
    ========================================================= */
-.sanad { display: block; overflow: visible; flex: none; stroke: none; }
-.sanad__pupils { transition: transform 0.18s ease-out; }
-.sanad__eyes { transform-origin: 32px 28px; animation: blink 5s infinite; }
-@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
-.sanad.is-thinking .sanad__pupils { animation: think 1.6s ease-in-out infinite; }
-@keyframes think { 0%, 100% { transform: translate(-2px, -2px); } 50% { transform: translate(2px, -2px); } }
-.sanad.is-talking .sanad__body { animation: talk 0.9s ease-in-out infinite; transform-origin: 32px 58px; }
-@keyframes talk { 50% { transform: scale(1.03, 0.97); } }
-.sanad-dock { position: fixed; z-index: 15; bottom: calc(84px + env(safe-area-inset-bottom)); inset-inline-end: 14px; display: grid; justify-items: end; gap: 8px; }
-.sanad-btn { border: 0; background: none; padding: 0; cursor: pointer; filter: drop-shadow(0 8px 14px rgba(98, 42, 39, 0.28)); animation: bob 3.2s ease-in-out infinite; }
-.sanad-btn:hover { transform: scale(1.06); }
-@keyframes bob { 50% { transform: translateY(-5px); } }
-.sanad-menu { order: -1; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; box-shadow: var(--shadow); display: grid; gap: 8px; width: 220px; }
-.sanad-menu p { font-size: 0.9rem; color: var(--ink); }
-.sanad-menu .link { background: none; border: 0; font: inherit; color: var(--muted); }
-.chat__hello { justify-self: center; animation: bob 3.2s ease-in-out infinite; }
+.wishaj { display: block; overflow: visible; flex: none; stroke: none; }
+.wishaj__look { transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.wishaj__eyes { transform-origin: 32px 30px; animation: blink 6s infinite; }
+@keyframes blink { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.12); } }
+/* يفكر: العيون تضيق وتتحرك يمين ويسار */
+.wishaj.is-thinking .wishaj__eyes { animation: think-eyes 1.4s ease-in-out infinite; }
+@keyframes think-eyes { 0%, 100% { transform: translateX(-2.5px) scaleY(0.55); } 50% { transform: translateX(2.5px) scaleY(0.55); } }
+/* يتكلم في الجولة: العيون تنبض بهدوء */
+.wishaj.is-talking .wishaj__eyes { animation: talk-eyes 1.1s ease-in-out infinite; }
+@keyframes talk-eyes { 50% { transform: scaleY(0.82); } }
+.wishaj-dock { position: fixed; z-index: 15; bottom: calc(84px + env(safe-area-inset-bottom)); inset-inline-end: 14px; display: grid; justify-items: end; gap: 8px; }
+.wishaj-dock.is-following { top: 0; left: 0; bottom: auto; right: auto; will-change: transform; }
+.wishaj-btn { border: 0; background: none; padding: 0; cursor: pointer; border-radius: 50%; filter: drop-shadow(0 8px 16px rgba(58, 23, 21, 0.35)); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease; }
+.wishaj-btn:hover { transform: scale(1.08); filter: drop-shadow(0 0 0.5px #e9806f) drop-shadow(0 10px 20px rgba(213, 96, 79, 0.45)); }
+.wishaj-dock.is-moving .wishaj-btn { transform: scale(0.94); }
+.wishaj-menu { position: absolute; bottom: calc(100% + 10px); inset-inline-end: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; box-shadow: var(--shadow); display: grid; gap: 8px; width: 220px; animation: pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+.wishaj-menu.is-below { bottom: auto; top: calc(100% + 10px); }
+.wishaj-dock.is-following .wishaj-menu.is-start { inset-inline-end: auto; left: 0; }
+.wishaj-dock.is-following .wishaj-menu:not(.is-start) { inset-inline-end: auto; right: 0; }
+.wishaj-menu p { font-size: 0.9rem; color: var(--ink); }
+.wishaj-menu .link { background: none; border: 0; font: inherit; color: var(--muted); }
+.chat__hello { justify-self: center; }
 .msg--thinking { display: flex; align-items: center; gap: 8px; }
-.loading__sanad { animation: bob 2.4s ease-in-out infinite; }
-@media (min-width: 1000px) { .sanad-dock { bottom: 24px; } }
+.loading__wishaj { filter: drop-shadow(0 14px 24px rgba(58, 23, 21, 0.3)); }
+@media (min-width: 1000px) { .wishaj-dock:not(.is-following) { bottom: 24px; } }
 
-/* جولة سند */
+/* جولة وشاج */
 .tour { position: fixed; inset: 0; z-index: 50; }
 .tour__hole { position: fixed; border-radius: 18px; box-shadow: 0 0 0 200vmax rgba(30, 14, 12, 0.58); transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
 .tour__guide { position: fixed; top: 0; left: 0; width: min(340px, calc(100vw - 20px)); display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -1735,8 +1741,8 @@ async function generatePlan() {
 function renderLoading() {
   $('[data-view="plan"]').innerHTML = `
     <section class="loading" aria-live="polite">
-      <div class="loading__sanad">${sanadSvg(88, 'is-thinking')}</div>
-      <h2 class="shiny">سند يجهّز خطتك…</h2>
+      <div class="loading__wishaj">${wishajSvg(88, 'is-thinking')}</div>
+      <h2 class="shiny">وشاج يجهّز خطتك…</h2>
       <ul class="loading__steps">
         <li>نقرأ حلمك وأهدافك</li>
         <li>نحسب الفرق بين نسبك الحالية واللي تبيها</li>
@@ -1985,7 +1991,7 @@ function studentContext() {
   ].join('\n');
 }
 
-const aiRules = () => `أنت «سند»، المساعد الدراسي الذكي في منصة «وشيجة» لطلاب الثانوي في السعودية (المنهج السعودي، والقدرات والتحصيلي). تكلّم بعربي بسيط وقريب وودود.
+const aiRules = () => `أنت «وشاج»، المساعد الدراسي الذكي في منصة «وشيجة» لطلاب الثانوي في السعودية (المنهج السعودي، والقدرات والتحصيلي). تكلّم بعربي بسيط وقريب وودود.
 - لو طلب حل سؤال: اشرح الحل بخطوات مرقمة قصيرة، وبعدها اكتب «**الجواب النهائي:**».
 - لو أعطاك إجابته عشان تصححها: ابدأ بالحكم (✅ صح / ⚠️ صح جزئياً / ❌ خطأ)، وقل وين الخطأ بالضبط وكيف يصححه، وبعدها الإجابة النموذجية.
 - لو طلب تلميح: أعطه تلميح بس بدون الحل.
@@ -2018,7 +2024,7 @@ const QUICK = [
 
 function bubble(t, k) {
   if (t.role === 'user') return `<div class="msg msg--me">${t.image ? `<span class="msg__img">${icon('image')} صورة</span>` : ''}${fmtAi(t.content)}</div>`;
-  if (t.pending) return `<div class="msg msg--ai msg--thinking">${sanadSvg(30, 'is-thinking')}<span class="shiny">سند يفكر…</span></div>`;
+  if (t.pending) return `<div class="msg msg--ai msg--thinking">${wishajSvg(30, 'is-thinking')}<span class="shiny">وشاج يفكر…</span></div>`;
   const { clean, acts } = parseActions(t.content);
   return `<div class="msg msg--ai${t.error ? ' is-error' : ''}">${fmtAi(clean)}${acts.map((x, i) => {
     const done = (t.applied || []).includes(i);
@@ -2035,8 +2041,8 @@ function renderAi() {
     <section class="ai">
       ${off ? `<div class="note note--warn">${icon('spark')} المساعد الذكي مو مفعّل هنا للحين: يحتاج مفتاح الذكاء الاصطناعي في إعدادات الموقع، أو تفتح وشيجة من رابط Claude.</div>` : ''}
       <div class="chat" data-chat aria-live="polite">
-        <div class="chat__hello">${sanadSvg(64)}</div>
-        <div class="msg msg--ai">هلا${(profile?.name || name) ? ` ${esc(profile?.name || name)}` : ''}! أنا سند، مساعدك في وشيجة 👋<br>${aiWelcome()}${chat.canImages && role() === 'student' ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
+        <div class="chat__hello">${wishajSvg(64)}</div>
+        <div class="msg msg--ai">هلا${(profile?.name || name) ? ` ${esc(profile?.name || name)}` : ''}! أنا وشاج، مساعدك في وشيجة 👋<br>${aiWelcome()}${chat.canImages && role() === 'student' ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
         ${chat.turns.map((t, k) => bubble(t, k)).join('')}
       </div>
       <div class="quick" role="group" aria-label="اختصارات">
@@ -2769,7 +2775,7 @@ function show() {
   if (route === 'board') renderBoardView();
   if (view === 'page') renderPage(route);
   window.scrollTo({ top: 0 });
-  renderSanadDock();
+  renderWishajDock();
   runCountUps();
   maybeAutoTour();
 }
@@ -3006,7 +3012,7 @@ function renderSchedule() {
     ${state.plan ? `<section class="card ai-edit">
       <div class="block__head"><h2>${icon('spark')} اطلب من الذكاء الاصطناعي يعدّل جدولك</h2></div>
       <textarea id="sched-req" class="input" data-sched-req rows="2" maxlength="300" placeholder="مثلاً: أبي أخفف يوم الخميس، أو زد وقت الفيزياء">${esc(state.schedReq || '')}</textarea>
-      <button type="button" class="btn btn--coral" data-sched-ai ${state.schedBusy ? 'disabled' : ''}>${state.schedBusy ? '<span class="shiny shiny--light">سند يعدّل جدولك…</span>' : 'عدّل جدولي'}</button>
+      <button type="button" class="btn btn--coral" data-sched-ai ${state.schedBusy ? 'disabled' : ''}>${state.schedBusy ? '<span class="shiny shiny--light">وشاج يعدّل جدولك…</span>' : 'عدّل جدولي'}</button>
     </section>` : ''}
 
     <section class="private">
@@ -3227,8 +3233,8 @@ const sectionHead = (title, extra = '') => `<div class="block__head"><h2>${title
 function pageMore() {
   return `<section class="more-grid">${NAV.student.side.filter(([id]) => id !== 'home').map(([id, title, ic]) =>
     `<a class="more-item" href="#${id}" ${id === 'focus' ? 'data-focus' : `data-route="${id}"`}>${icon(ic)}<span>${title}</span></a>`).join('')}
-    <button type="button" class="more-item" data-tour-start>${sanadSvg(30)}<span>جولة مع سند</span></button>
-    ${db.get('sanadHidden', false) ? `<button type="button" class="more-item" data-sanad-show>${sanadSvg(30)}<span>رجّع سند</span></button>` : ''}
+    <button type="button" class="more-item" data-tour-start>${wishajSvg(30)}<span>جولة مع وشاج</span></button>
+    ${db.get('wishajHidden', false) ? `<button type="button" class="more-item" data-wishaj-show>${wishajSvg(30)}<span>رجّع وشاج</span></button>` : ''}
     <button type="button" class="more-item" data-theme-toggle>${icon(isDark() ? 'sun' : 'moon')}<span>${isDark() ? 'الوضع الفاتح' : 'الوضع الداكن'}</span></button>
     <button type="button" class="more-item" data-switch>${icon('back')}<span>تبديل الحساب</span></button></section>`;
 }
@@ -3607,7 +3613,7 @@ function roleRules() {
   const who = r === 'teacher' ? `معلم ${profile.subject} اسمه ${profile.name} في مدرسة ثانوية سعودية`
     : r === 'admin' ? `${profile.position || 'مدير المدرسة'} اسمه ${profile.name} في مدرسة ثانوية سعودية`
       : `ولي أمر اسمه ${profile.name}، وولده ${profile.child || 'عبدالله'} في ${myClassName()}. مستوى ولده: ${JSON.stringify(db.get('levels', {}))}. لا تعطيه تفاصيل خطة ولده المستقبلية لأنها خاصة.`;
-  return `أنت «سند»، المساعد الذكي داخل منصة «وشيجة» المدرسية السعودية. تكلّم بعربي بسيط وودود، وخل الرد قصير وواضح بسطور قصيرة، واستخدم **للعريض** و- للقوائم، وبدون جداول.
+  return `أنت «وشاج»، المساعد الذكي داخل منصة «وشيجة» المدرسية السعودية. تكلّم بعربي بسيط وودود، وخل الرد قصير وواضح بسطور قصيرة، واستخدم **للعريض** و- للقوائم، وبدون جداول.
 المستخدم: ${who}.
 ${ACTION_RULES[r]}
 ${today}`;
@@ -3954,7 +3960,7 @@ document.addEventListener('change', (e) => {
 });
 
 
-// وشيجة — المؤثرات، «سند» (شخصية المساعد) وجولته، البروفايل، والانتقالات
+// وشيجة — المؤثرات، «وشاج» (شخصية المساعد) وجولته، البروفايل، والانتقالات
 // بعض المؤثرات مستوحاة ومنقولة لجافاسكربت عادي من React Bits (SpotlightCard, ShinyText, ClickSpark, CountUp)
 // Copyright (c) 2026 David Haz — MIT + Commons Clause (انظر THIRD_PARTY_NOTICES.md)
 
@@ -4038,61 +4044,119 @@ function runCountUps(root = document) {
 }
 
 /* =========================================================
-   ٤) «سند» — شخصية المساعد الذكي
+   ٤) «وشاج» — شخصية المساعد الذكي
+   كرة عنابية هادية بحافة مرجانية وعينين طوليتين، بدون فم ولا خدود.
    ========================================================= */
-let sanadSeq = 0;
-function sanadSvg(size = 56, mood = '') {
-  const id = 'sg' + (++sanadSeq);
-  return `<svg class="sanad ${mood}" width="${size}" height="${size}" style="width:${size}px;height:${size}px" viewBox="0 0 64 64" aria-hidden="true">
-    <defs><radialGradient id="${id}" cx="36%" cy="28%" r="75%"><stop offset="0" stop-color="#ee9585"/><stop offset="0.55" stop-color="#d5604f"/><stop offset="1" stop-color="#b44a3a"/></radialGradient></defs>
-    <path class="sanad__body" d="M32 5c15.5 0 26 11.5 26 26.5C58 47 46.5 59 32 59S6 47 6 31.5C6 16.5 16.5 5 32 5z" fill="url(#${id})"/>
-    <g class="sanad__eyes">
-      <ellipse cx="23.5" cy="28" rx="6.2" ry="7.6" fill="#fff"/><ellipse cx="40.5" cy="28" rx="6.2" ry="7.6" fill="#fff"/>
-      <g class="sanad__pupils"><circle cx="23.5" cy="29" r="3.3" fill="#3e1d1b"/><circle cx="40.5" cy="29" r="3.3" fill="#3e1d1b"/>
-      <circle cx="24.7" cy="27.6" r="1" fill="#fff"/><circle cx="41.7" cy="27.6" r="1" fill="#fff"/></g>
-    </g>
-    <path d="M22.5 44.5q9.5 6.5 19 0" stroke="#f6eee4" stroke-width="2.8" stroke-linecap="round" fill="none"/>
-    <circle cx="22" cy="44.3" r="2" fill="#f6eee4"/><circle cx="42" cy="44.3" r="2" fill="#f6eee4"/>
+let wishajSeq = 0;
+function wishajSvg(size = 56, mood = '') {
+  const id = 'wj' + (++wishajSeq);
+  return `<svg class="wishaj ${mood}" width="${size}" height="${size}" style="width:${size}px;height:${size}px" viewBox="0 0 64 64" aria-hidden="true">
+    <defs>
+      <radialGradient id="${id}b" cx="38%" cy="30%" r="78%"><stop offset="0" stop-color="#8d3d36"/><stop offset="0.55" stop-color="#622a27"/><stop offset="1" stop-color="#3a1715"/></radialGradient>
+      <radialGradient id="${id}r" cx="50%" cy="100%" r="62%"><stop offset="0" stop-color="#d5604f" stop-opacity="0.85"/><stop offset="1" stop-color="#d5604f" stop-opacity="0"/></radialGradient>
+    </defs>
+    <circle class="wishaj__body" cx="32" cy="32" r="27" fill="url(#${id}b)"/>
+    <circle cx="32" cy="32" r="27" fill="url(#${id}r)"/>
+    <ellipse cx="24.5" cy="17.5" rx="9" ry="4.2" fill="#fff" opacity="0.1"/>
+    <circle cx="32" cy="32" r="26.4" fill="none" stroke="#e9806f" stroke-opacity="0.6" stroke-width="1.2"/>
+    <g class="wishaj__eyes"><g class="wishaj__look">
+      <rect x="21.5" y="22" width="6.5" height="15.5" rx="3.25" fill="#f6eee4"/>
+      <rect x="36" y="22" width="6.5" height="15.5" rx="3.25" fill="#f6eee4"/>
+    </g></g>
   </svg>`;
 }
-// العيون تلاحق الماوس
+// العيون تطالع الماوس
 document.addEventListener('pointermove', (e) => {
   if (reducedMotion()) return;
-  $$('.sanad__pupils').forEach((g) => {
+  $$('.wishaj__look').forEach((g) => {
     const r = g.closest('svg').getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    const d = Math.hypot(dx, dy) || 1, k = Math.min(2.4, d / 40);
-    g.style.transform = `translate(${(dx / d) * k}px, ${(dy / d) * k}px)`;
+    const d = Math.hypot(dx, dy) || 1, k = Math.min(3, d / 36);
+    g.style.transform = `translate(${(dx / d) * k}px, ${(dy / d) * k * 0.8}px)`;
   });
 }, { passive: true });
 
-function renderSanadDock() {
-  let el = $('[data-sanad]');
+/* ---------- وشاج يلحق الماوس (على الكمبيوتر) ---------- */
+const follow = { x: 0, y: 0, tx: 0, ty: 0, on: false, raf: 0, frozen: false, last: 0 };
+const canFollow = () => matchMedia('(pointer: fine)').matches && !reducedMotion();
+function placeDock() {
+  const el = $('[data-wishaj]');
+  if (!el) return;
+  el.style.transform = `translate(${follow.x}px, ${follow.y}px)`;
+}
+function followTick(now) {
+  follow.raf = 0;
+  const el = $('[data-wishaj]');
+  if (!el || el.hidden || !follow.on) return;
+  const dt = Math.min(0.05, (now - (follow.last || now)) / 1000 || 0.016);
+  follow.last = now;
+  const k = 1 - Math.exp(-dt / 0.16); // لحاق ناعم بتأخير بسيط
+  follow.x += (follow.tx - follow.x) * k;
+  follow.y += (follow.ty - follow.y) * k;
+  placeDock();
+  el.classList.toggle('is-moving', Math.hypot(follow.tx - follow.x, follow.ty - follow.y) > 2);
+  if (Math.hypot(follow.tx - follow.x, follow.ty - follow.y) > 0.4) follow.raf = requestAnimationFrame(followTick);
+}
+function wakeFollow() { if (!follow.raf) { follow.last = 0; follow.raf = requestAnimationFrame(followTick); } }
+document.addEventListener('pointermove', (e) => {
+  const el = $('[data-wishaj]');
+  if (!el || el.hidden || e.pointerType !== 'mouse' || !canFollow() || tour) return;
+  if (!follow.on) {
+    const r = el.getBoundingClientRect();
+    follow.x = r.left; follow.y = r.top; follow.on = true;
+    el.classList.add('is-following');
+    placeDock();
+  }
+  const size = 48;
+  const cx = follow.x + size / 2, cy = follow.y + size / 2;
+  const near = Math.hypot(e.clientX - cx, e.clientY - cy) < 46;
+  // لما تقرّب منه يوقف عشان تقدر تضغط عليه، ولما القائمة مفتوحة يثبت
+  follow.frozen = near || !$('[data-wishaj-menu]').hidden;
+  if (follow.frozen) return;
+  follow.tx = clamp(e.clientX - 74, 8, innerWidth - size - 8);
+  follow.ty = clamp(e.clientY + 22, 8, innerHeight - size - 8);
+  wakeFollow();
+}, { passive: true });
+// لما الماوس يطلع من الصفحة، يرجع لمكانه
+document.documentElement.addEventListener('mouseleave', () => {
+  const el = $('[data-wishaj]');
+  if (!el || !follow.on) return;
+  follow.on = false; cancelAnimationFrame(follow.raf); follow.raf = 0;
+  el.classList.remove('is-following', 'is-moving');
+  el.style.transform = '';
+});
+
+function renderWishajDock() {
+  let el = $('[data-wishaj]');
   if (!el) {
     el = document.createElement('div');
-    el.setAttribute('data-sanad', '');
-    el.className = 'sanad-dock';
+    el.setAttribute('data-wishaj', '');
+    el.className = 'wishaj-dock';
     document.body.appendChild(el);
   }
-  const hide = !profile || currentRoute() === 'ai' || db.get('sanadHidden', false);
+  const hide = !profile || currentRoute() === 'ai' || db.get('wishajHidden', false);
   el.hidden = hide;
   if (hide) return;
-  if (!el.innerHTML) el.innerHTML = `<button type="button" class="sanad-btn" data-sanad-open aria-label="سند، مساعدك">${sanadSvg(58)}</button><div class="sanad-menu" data-sanad-menu hidden></div>`;
+  if (!el.innerHTML) el.innerHTML = `<button type="button" class="wishaj-btn" data-wishaj-open aria-label="وشاج، مساعدك">${wishajSvg(48)}</button><div class="wishaj-menu" data-wishaj-menu hidden></div>`;
 }
-function openSanadMenu() {
-  const m = $('[data-sanad-menu]');
+function openWishajMenu() {
+  const m = $('[data-wishaj-menu]');
   if (!m) return;
   if (!m.hidden) { m.hidden = true; return; }
   m.innerHTML = `
-    <p><b>أنا سند 👋</b> مساعدك في وشيجة.</p>
+    <p><b>أنا وشاج</b>، مساعدك في وشيجة.</p>
     <button type="button" class="btn btn--coral btn--sm" data-route="ai">اسألني أي شي</button>
     ${TOURS[tourKey()] ? '<button type="button" class="btn btn--ghost btn--sm" data-tour-start>جولة في الصفحة</button>' : ''}
-    <button type="button" class="link" data-sanad-hide>اخفيني</button>`;
+    <button type="button" class="link" data-wishaj-hide>اخفيني</button>`;
   m.hidden = false;
+  // القائمة تفتح للجهة اللي فيها مكان
+  const r = $('[data-wishaj]').getBoundingClientRect();
+  m.classList.toggle('is-below', r.top < 240);
+  m.classList.toggle('is-start', r.left < 240);
 }
 
 /* =========================================================
-   ٥) جولة «سند»: يتحرك على الخانات ويشرحها
+   ٥) جولة «وشاج»: يتحرك على الخانات ويشرحها
    ========================================================= */
 const TOURS = {
   'student:home': [
@@ -4134,10 +4198,10 @@ function startTour() {
   const steps = (TOURS[tourKey()] || []).filter(([sel]) => { const el = $(sel); return el && el.offsetParent !== null; });
   if (!steps.length) return;
   closeTour();
-  $('[data-sanad-menu]') && ($('[data-sanad-menu]').hidden = true);
+  $('[data-wishaj-menu]') && ($('[data-wishaj-menu]').hidden = true);
   const layer = document.createElement('div');
   layer.className = 'tour';
-  layer.innerHTML = `<div class="tour__hole"></div><div class="tour__guide">${sanadSvg(64, 'is-talking')}<div class="tour__bubble" role="dialog" aria-live="polite"><p></p><div class="tour__nav"><small></small><button type="button" class="link" data-tour-skip>تخطّي</button><button type="button" class="btn btn--coral btn--sm" data-tour-next>التالي</button></div></div></div>`;
+  layer.innerHTML = `<div class="tour__hole"></div><div class="tour__guide">${wishajSvg(64, 'is-talking')}<div class="tour__bubble" role="dialog" aria-live="polite"><p></p><div class="tour__nav"><small></small><button type="button" class="link" data-tour-skip>تخطّي</button><button type="button" class="btn btn--coral btn--sm" data-tour-next>التالي</button></div></div></div>`;
   document.body.appendChild(layer);
   tour = { steps, i: -1, layer };
   db.set('tourDone:' + tourKey(), true);
@@ -4157,7 +4221,7 @@ function nextTourStep() {
     const hole = $('.tour__hole', tour.layer), guide = $('.tour__guide', tour.layer);
     const pad = 8;
     Object.assign(hole.style, { top: `${r.top - pad}px`, left: `${r.left - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
-    // سند ينزل تحت الخانة لو فيه مكان، وإلا فوقها
+    // وشاج ينزل تحت الخانة لو فيه مكان، وإلا فوقها
     const below = r.bottom + 190 < innerHeight;
     const gy = below ? Math.min(innerHeight - 180, r.bottom + 14) : Math.max(10, r.top - 176);
     const gx = Math.max(10, Math.min(innerWidth - Math.min(340, innerWidth - 20) - 10, r.left + r.width / 2 - 170));
@@ -4172,7 +4236,7 @@ function nextTourStep() {
 function closeTour() { if (tour) { tour.layer.remove(); tour = null; } }
 function maybeAutoTour() {
   if (!profile || tour || db.get('tourDone:' + tourKey(), false) || !TOURS[tourKey()]) return;
-  if (currentRoute() !== 'home') return; // التلقائية في الرئيسية بس، وباقي الصفحات من قائمة سند
+  if (currentRoute() !== 'home') return; // التلقائية في الرئيسية بس، وباقي الصفحات من قائمة وشاج
   setTimeout(() => { if (!tour && !$('[data-sheet]:not([hidden])')) startTour(); }, 900);
 }
 document.addEventListener('keydown', (e) => {
@@ -4245,16 +4309,16 @@ function pageProfile() {
     </section>`;
 }
 
-/* ---------- أحداث البروفايل وسند ---------- */
+/* ---------- أحداث البروفايل ووشاج ---------- */
 document.addEventListener('click', (e) => {
   const t = e.target;
-  if (t.closest('[data-sanad-open]')) { openSanadMenu(); return; }
-  if (t.closest('[data-sanad-hide]')) { db.set('sanadHidden', true); renderSanadDock(); toast('تقدر ترجّعني من «المزيد» 👋'); return; }
-  if (t.closest('[data-sanad-show]')) { db.set('sanadHidden', false); renderSanadDock(); toast('رجعت 👋'); return; }
+  if (t.closest('[data-wishaj-open]')) { openWishajMenu(); return; }
+  if (t.closest('[data-wishaj-hide]')) { db.set('wishajHidden', true); renderWishajDock(); toast('تقدر ترجّعني من «المزيد» 👋'); return; }
+  if (t.closest('[data-wishaj-show]')) { db.set('wishajHidden', false); renderWishajDock(); toast('رجعت 👋'); return; }
   if (t.closest('[data-tour-start]')) { startTour(); return; }
   if (t.closest('[data-tour-next]')) { nextTourStep(); return; }
   if (t.closest('[data-tour-skip]')) { closeTour(); return; }
-  if (!t.closest('[data-sanad]')) { const m = $('[data-sanad-menu]'); if (m && !m.hidden) m.hidden = true; }
+  if (!t.closest('[data-wishaj]')) { const m = $('[data-wishaj-menu]'); if (m && !m.hidden) m.hidden = true; }
   if (role() !== 'student') return;
   if (t.closest('[data-pf-save]')) { const p = sp(); p.bio = $('#pf-bio').value.trim(); p.visible = $('#pf-visible').checked; saveSp(p); toast('انحفظ بروفايلك ✓'); return; }
   const ai = t.closest('[data-pf-add-int]');

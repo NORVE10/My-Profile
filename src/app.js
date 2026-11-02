@@ -730,8 +730,8 @@ async function generatePlan() {
 function renderLoading() {
   $('[data-view="plan"]').innerHTML = `
     <section class="loading" aria-live="polite">
-      <div class="loading__sanad">${sanadSvg(88, 'is-thinking')}</div>
-      <h2 class="shiny">سند يجهّز خطتك…</h2>
+      <div class="loading__wishaj">${wishajSvg(88, 'is-thinking')}</div>
+      <h2 class="shiny">وشاج يجهّز خطتك…</h2>
       <ul class="loading__steps">
         <li>نقرأ حلمك وأهدافك</li>
         <li>نحسب الفرق بين نسبك الحالية واللي تبيها</li>
@@ -980,7 +980,7 @@ function studentContext() {
   ].join('\n');
 }
 
-const aiRules = () => `أنت «سند»، المساعد الدراسي الذكي في منصة «وشيجة» لطلاب الثانوي في السعودية (المنهج السعودي، والقدرات والتحصيلي). تكلّم بعربي بسيط وقريب وودود.
+const aiRules = () => `أنت «وشاج»، المساعد الدراسي الذكي في منصة «وشيجة» لطلاب الثانوي في السعودية (المنهج السعودي، والقدرات والتحصيلي). تكلّم بعربي بسيط وقريب وودود.
 - لو طلب حل سؤال: اشرح الحل بخطوات مرقمة قصيرة، وبعدها اكتب «**الجواب النهائي:**».
 - لو أعطاك إجابته عشان تصححها: ابدأ بالحكم (✅ صح / ⚠️ صح جزئياً / ❌ خطأ)، وقل وين الخطأ بالضبط وكيف يصححه، وبعدها الإجابة النموذجية.
 - لو طلب تلميح: أعطه تلميح بس بدون الحل.
@@ -1013,7 +1013,7 @@ const QUICK = [
 
 function bubble(t, k) {
   if (t.role === 'user') return `<div class="msg msg--me">${t.image ? `<span class="msg__img">${icon('image')} صورة</span>` : ''}${fmtAi(t.content)}</div>`;
-  if (t.pending) return `<div class="msg msg--ai msg--thinking">${sanadSvg(30, 'is-thinking')}<span class="shiny">سند يفكر…</span></div>`;
+  if (t.pending) return `<div class="msg msg--ai msg--thinking">${wishajSvg(30, 'is-thinking')}<span class="shiny">وشاج يفكر…</span></div>`;
   const { clean, acts } = parseActions(t.content);
   return `<div class="msg msg--ai${t.error ? ' is-error' : ''}">${fmtAi(clean)}${acts.map((x, i) => {
     const done = (t.applied || []).includes(i);
@@ -1030,8 +1030,8 @@ function renderAi() {
     <section class="ai">
       ${off ? `<div class="note note--warn">${icon('spark')} المساعد الذكي مو مفعّل هنا للحين: يحتاج مفتاح الذكاء الاصطناعي في إعدادات الموقع، أو تفتح وشيجة من رابط Claude.</div>` : ''}
       <div class="chat" data-chat aria-live="polite">
-        <div class="chat__hello">${sanadSvg(64)}</div>
-        <div class="msg msg--ai">هلا${(profile?.name || name) ? ` ${esc(profile?.name || name)}` : ''}! أنا سند، مساعدك في وشيجة 👋<br>${aiWelcome()}${chat.canImages && role() === 'student' ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
+        <div class="chat__hello">${wishajSvg(64)}</div>
+        <div class="msg msg--ai">هلا${(profile?.name || name) ? ` ${esc(profile?.name || name)}` : ''}! أنا وشاج، مساعدك في وشيجة 👋<br>${aiWelcome()}${chat.canImages && role() === 'student' ? '<br>صوّر السؤال من الكتاب أو اكتبه.' : ''}</div>
         ${chat.turns.map((t, k) => bubble(t, k)).join('')}
       </div>
       <div class="quick" role="group" aria-label="اختصارات">

@@ -489,7 +489,7 @@ function show() {
   if (route === 'board') renderBoardView();
   if (view === 'page') renderPage(route);
   window.scrollTo({ top: 0 });
-  renderSanadDock();
+  renderWishajDock();
   runCountUps();
   maybeAutoTour();
 }
@@ -726,7 +726,7 @@ function renderSchedule() {
     ${state.plan ? `<section class="card ai-edit">
       <div class="block__head"><h2>${icon('spark')} اطلب من الذكاء الاصطناعي يعدّل جدولك</h2></div>
       <textarea id="sched-req" class="input" data-sched-req rows="2" maxlength="300" placeholder="مثلاً: أبي أخفف يوم الخميس، أو زد وقت الفيزياء">${esc(state.schedReq || '')}</textarea>
-      <button type="button" class="btn btn--coral" data-sched-ai ${state.schedBusy ? 'disabled' : ''}>${state.schedBusy ? '<span class="shiny shiny--light">سند يعدّل جدولك…</span>' : 'عدّل جدولي'}</button>
+      <button type="button" class="btn btn--coral" data-sched-ai ${state.schedBusy ? 'disabled' : ''}>${state.schedBusy ? '<span class="shiny shiny--light">وشاج يعدّل جدولك…</span>' : 'عدّل جدولي'}</button>
     </section>` : ''}
 
     <section class="private">
@@ -947,8 +947,8 @@ const sectionHead = (title, extra = '') => `<div class="block__head"><h2>${title
 function pageMore() {
   return `<section class="more-grid">${NAV.student.side.filter(([id]) => id !== 'home').map(([id, title, ic]) =>
     `<a class="more-item" href="#${id}" ${id === 'focus' ? 'data-focus' : `data-route="${id}"`}>${icon(ic)}<span>${title}</span></a>`).join('')}
-    <button type="button" class="more-item" data-tour-start>${sanadSvg(30)}<span>جولة مع سند</span></button>
-    ${db.get('sanadHidden', false) ? `<button type="button" class="more-item" data-sanad-show>${sanadSvg(30)}<span>رجّع سند</span></button>` : ''}
+    <button type="button" class="more-item" data-tour-start>${wishajSvg(30)}<span>جولة مع وشاج</span></button>
+    ${db.get('wishajHidden', false) ? `<button type="button" class="more-item" data-wishaj-show>${wishajSvg(30)}<span>رجّع وشاج</span></button>` : ''}
     <button type="button" class="more-item" data-theme-toggle>${icon(isDark() ? 'sun' : 'moon')}<span>${isDark() ? 'الوضع الفاتح' : 'الوضع الداكن'}</span></button>
     <button type="button" class="more-item" data-switch>${icon('back')}<span>تبديل الحساب</span></button></section>`;
 }
@@ -1327,7 +1327,7 @@ function roleRules() {
   const who = r === 'teacher' ? `معلم ${profile.subject} اسمه ${profile.name} في مدرسة ثانوية سعودية`
     : r === 'admin' ? `${profile.position || 'مدير المدرسة'} اسمه ${profile.name} في مدرسة ثانوية سعودية`
       : `ولي أمر اسمه ${profile.name}، وولده ${profile.child || 'عبدالله'} في ${myClassName()}. مستوى ولده: ${JSON.stringify(db.get('levels', {}))}. لا تعطيه تفاصيل خطة ولده المستقبلية لأنها خاصة.`;
-  return `أنت «سند»، المساعد الذكي داخل منصة «وشيجة» المدرسية السعودية. تكلّم بعربي بسيط وودود، وخل الرد قصير وواضح بسطور قصيرة، واستخدم **للعريض** و- للقوائم، وبدون جداول.
+  return `أنت «وشاج»، المساعد الذكي داخل منصة «وشيجة» المدرسية السعودية. تكلّم بعربي بسيط وودود، وخل الرد قصير وواضح بسطور قصيرة، واستخدم **للعريض** و- للقوائم، وبدون جداول.
 المستخدم: ${who}.
 ${ACTION_RULES[r]}
 ${today}`;

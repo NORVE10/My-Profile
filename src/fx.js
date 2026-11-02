@@ -1,4 +1,4 @@
-// وشيجة — المؤثرات، «سند» (شخصية المساعد) وجولته، البروفايل، والانتقالات
+// وشيجة — المؤثرات، «وشاج» (شخصية المساعد) وجولته، البروفايل، والانتقالات
 // بعض المؤثرات مستوحاة ومنقولة لجافاسكربت عادي من React Bits (SpotlightCard, ShinyText, ClickSpark, CountUp)
 // Copyright (c) 2026 David Haz — MIT + Commons Clause (انظر THIRD_PARTY_NOTICES.md)
 
@@ -82,61 +82,119 @@ function runCountUps(root = document) {
 }
 
 /* =========================================================
-   ٤) «سند» — شخصية المساعد الذكي
+   ٤) «وشاج» — شخصية المساعد الذكي
+   كرة عنابية هادية بحافة مرجانية وعينين طوليتين، بدون فم ولا خدود.
    ========================================================= */
-let sanadSeq = 0;
-function sanadSvg(size = 56, mood = '') {
-  const id = 'sg' + (++sanadSeq);
-  return `<svg class="sanad ${mood}" width="${size}" height="${size}" style="width:${size}px;height:${size}px" viewBox="0 0 64 64" aria-hidden="true">
-    <defs><radialGradient id="${id}" cx="36%" cy="28%" r="75%"><stop offset="0" stop-color="#ee9585"/><stop offset="0.55" stop-color="#d5604f"/><stop offset="1" stop-color="#b44a3a"/></radialGradient></defs>
-    <path class="sanad__body" d="M32 5c15.5 0 26 11.5 26 26.5C58 47 46.5 59 32 59S6 47 6 31.5C6 16.5 16.5 5 32 5z" fill="url(#${id})"/>
-    <g class="sanad__eyes">
-      <ellipse cx="23.5" cy="28" rx="6.2" ry="7.6" fill="#fff"/><ellipse cx="40.5" cy="28" rx="6.2" ry="7.6" fill="#fff"/>
-      <g class="sanad__pupils"><circle cx="23.5" cy="29" r="3.3" fill="#3e1d1b"/><circle cx="40.5" cy="29" r="3.3" fill="#3e1d1b"/>
-      <circle cx="24.7" cy="27.6" r="1" fill="#fff"/><circle cx="41.7" cy="27.6" r="1" fill="#fff"/></g>
-    </g>
-    <path d="M22.5 44.5q9.5 6.5 19 0" stroke="#f6eee4" stroke-width="2.8" stroke-linecap="round" fill="none"/>
-    <circle cx="22" cy="44.3" r="2" fill="#f6eee4"/><circle cx="42" cy="44.3" r="2" fill="#f6eee4"/>
+let wishajSeq = 0;
+function wishajSvg(size = 56, mood = '') {
+  const id = 'wj' + (++wishajSeq);
+  return `<svg class="wishaj ${mood}" width="${size}" height="${size}" style="width:${size}px;height:${size}px" viewBox="0 0 64 64" aria-hidden="true">
+    <defs>
+      <radialGradient id="${id}b" cx="38%" cy="30%" r="78%"><stop offset="0" stop-color="#8d3d36"/><stop offset="0.55" stop-color="#622a27"/><stop offset="1" stop-color="#3a1715"/></radialGradient>
+      <radialGradient id="${id}r" cx="50%" cy="100%" r="62%"><stop offset="0" stop-color="#d5604f" stop-opacity="0.85"/><stop offset="1" stop-color="#d5604f" stop-opacity="0"/></radialGradient>
+    </defs>
+    <circle class="wishaj__body" cx="32" cy="32" r="27" fill="url(#${id}b)"/>
+    <circle cx="32" cy="32" r="27" fill="url(#${id}r)"/>
+    <ellipse cx="24.5" cy="17.5" rx="9" ry="4.2" fill="#fff" opacity="0.1"/>
+    <circle cx="32" cy="32" r="26.4" fill="none" stroke="#e9806f" stroke-opacity="0.6" stroke-width="1.2"/>
+    <g class="wishaj__eyes"><g class="wishaj__look">
+      <rect x="21.5" y="22" width="6.5" height="15.5" rx="3.25" fill="#f6eee4"/>
+      <rect x="36" y="22" width="6.5" height="15.5" rx="3.25" fill="#f6eee4"/>
+    </g></g>
   </svg>`;
 }
-// العيون تلاحق الماوس
+// العيون تطالع الماوس
 document.addEventListener('pointermove', (e) => {
   if (reducedMotion()) return;
-  $$('.sanad__pupils').forEach((g) => {
+  $$('.wishaj__look').forEach((g) => {
     const r = g.closest('svg').getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    const d = Math.hypot(dx, dy) || 1, k = Math.min(2.4, d / 40);
-    g.style.transform = `translate(${(dx / d) * k}px, ${(dy / d) * k}px)`;
+    const d = Math.hypot(dx, dy) || 1, k = Math.min(3, d / 36);
+    g.style.transform = `translate(${(dx / d) * k}px, ${(dy / d) * k * 0.8}px)`;
   });
 }, { passive: true });
 
-function renderSanadDock() {
-  let el = $('[data-sanad]');
+/* ---------- وشاج يلحق الماوس (على الكمبيوتر) ---------- */
+const follow = { x: 0, y: 0, tx: 0, ty: 0, on: false, raf: 0, frozen: false, last: 0 };
+const canFollow = () => matchMedia('(pointer: fine)').matches && !reducedMotion();
+function placeDock() {
+  const el = $('[data-wishaj]');
+  if (!el) return;
+  el.style.transform = `translate(${follow.x}px, ${follow.y}px)`;
+}
+function followTick(now) {
+  follow.raf = 0;
+  const el = $('[data-wishaj]');
+  if (!el || el.hidden || !follow.on) return;
+  const dt = Math.min(0.05, (now - (follow.last || now)) / 1000 || 0.016);
+  follow.last = now;
+  const k = 1 - Math.exp(-dt / 0.16); // لحاق ناعم بتأخير بسيط
+  follow.x += (follow.tx - follow.x) * k;
+  follow.y += (follow.ty - follow.y) * k;
+  placeDock();
+  el.classList.toggle('is-moving', Math.hypot(follow.tx - follow.x, follow.ty - follow.y) > 2);
+  if (Math.hypot(follow.tx - follow.x, follow.ty - follow.y) > 0.4) follow.raf = requestAnimationFrame(followTick);
+}
+function wakeFollow() { if (!follow.raf) { follow.last = 0; follow.raf = requestAnimationFrame(followTick); } }
+document.addEventListener('pointermove', (e) => {
+  const el = $('[data-wishaj]');
+  if (!el || el.hidden || e.pointerType !== 'mouse' || !canFollow() || tour) return;
+  if (!follow.on) {
+    const r = el.getBoundingClientRect();
+    follow.x = r.left; follow.y = r.top; follow.on = true;
+    el.classList.add('is-following');
+    placeDock();
+  }
+  const size = 48;
+  const cx = follow.x + size / 2, cy = follow.y + size / 2;
+  const near = Math.hypot(e.clientX - cx, e.clientY - cy) < 46;
+  // لما تقرّب منه يوقف عشان تقدر تضغط عليه، ولما القائمة مفتوحة يثبت
+  follow.frozen = near || !$('[data-wishaj-menu]').hidden;
+  if (follow.frozen) return;
+  follow.tx = clamp(e.clientX - 74, 8, innerWidth - size - 8);
+  follow.ty = clamp(e.clientY + 22, 8, innerHeight - size - 8);
+  wakeFollow();
+}, { passive: true });
+// لما الماوس يطلع من الصفحة، يرجع لمكانه
+document.documentElement.addEventListener('mouseleave', () => {
+  const el = $('[data-wishaj]');
+  if (!el || !follow.on) return;
+  follow.on = false; cancelAnimationFrame(follow.raf); follow.raf = 0;
+  el.classList.remove('is-following', 'is-moving');
+  el.style.transform = '';
+});
+
+function renderWishajDock() {
+  let el = $('[data-wishaj]');
   if (!el) {
     el = document.createElement('div');
-    el.setAttribute('data-sanad', '');
-    el.className = 'sanad-dock';
+    el.setAttribute('data-wishaj', '');
+    el.className = 'wishaj-dock';
     document.body.appendChild(el);
   }
-  const hide = !profile || currentRoute() === 'ai' || db.get('sanadHidden', false);
+  const hide = !profile || currentRoute() === 'ai' || db.get('wishajHidden', false);
   el.hidden = hide;
   if (hide) return;
-  if (!el.innerHTML) el.innerHTML = `<button type="button" class="sanad-btn" data-sanad-open aria-label="سند، مساعدك">${sanadSvg(58)}</button><div class="sanad-menu" data-sanad-menu hidden></div>`;
+  if (!el.innerHTML) el.innerHTML = `<button type="button" class="wishaj-btn" data-wishaj-open aria-label="وشاج، مساعدك">${wishajSvg(48)}</button><div class="wishaj-menu" data-wishaj-menu hidden></div>`;
 }
-function openSanadMenu() {
-  const m = $('[data-sanad-menu]');
+function openWishajMenu() {
+  const m = $('[data-wishaj-menu]');
   if (!m) return;
   if (!m.hidden) { m.hidden = true; return; }
   m.innerHTML = `
-    <p><b>أنا سند 👋</b> مساعدك في وشيجة.</p>
+    <p><b>أنا وشاج</b>، مساعدك في وشيجة.</p>
     <button type="button" class="btn btn--coral btn--sm" data-route="ai">اسألني أي شي</button>
     ${TOURS[tourKey()] ? '<button type="button" class="btn btn--ghost btn--sm" data-tour-start>جولة في الصفحة</button>' : ''}
-    <button type="button" class="link" data-sanad-hide>اخفيني</button>`;
+    <button type="button" class="link" data-wishaj-hide>اخفيني</button>`;
   m.hidden = false;
+  // القائمة تفتح للجهة اللي فيها مكان
+  const r = $('[data-wishaj]').getBoundingClientRect();
+  m.classList.toggle('is-below', r.top < 240);
+  m.classList.toggle('is-start', r.left < 240);
 }
 
 /* =========================================================
-   ٥) جولة «سند»: يتحرك على الخانات ويشرحها
+   ٥) جولة «وشاج»: يتحرك على الخانات ويشرحها
    ========================================================= */
 const TOURS = {
   'student:home': [
@@ -178,10 +236,10 @@ function startTour() {
   const steps = (TOURS[tourKey()] || []).filter(([sel]) => { const el = $(sel); return el && el.offsetParent !== null; });
   if (!steps.length) return;
   closeTour();
-  $('[data-sanad-menu]') && ($('[data-sanad-menu]').hidden = true);
+  $('[data-wishaj-menu]') && ($('[data-wishaj-menu]').hidden = true);
   const layer = document.createElement('div');
   layer.className = 'tour';
-  layer.innerHTML = `<div class="tour__hole"></div><div class="tour__guide">${sanadSvg(64, 'is-talking')}<div class="tour__bubble" role="dialog" aria-live="polite"><p></p><div class="tour__nav"><small></small><button type="button" class="link" data-tour-skip>تخطّي</button><button type="button" class="btn btn--coral btn--sm" data-tour-next>التالي</button></div></div></div>`;
+  layer.innerHTML = `<div class="tour__hole"></div><div class="tour__guide">${wishajSvg(64, 'is-talking')}<div class="tour__bubble" role="dialog" aria-live="polite"><p></p><div class="tour__nav"><small></small><button type="button" class="link" data-tour-skip>تخطّي</button><button type="button" class="btn btn--coral btn--sm" data-tour-next>التالي</button></div></div></div>`;
   document.body.appendChild(layer);
   tour = { steps, i: -1, layer };
   db.set('tourDone:' + tourKey(), true);
@@ -201,7 +259,7 @@ function nextTourStep() {
     const hole = $('.tour__hole', tour.layer), guide = $('.tour__guide', tour.layer);
     const pad = 8;
     Object.assign(hole.style, { top: `${r.top - pad}px`, left: `${r.left - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
-    // سند ينزل تحت الخانة لو فيه مكان، وإلا فوقها
+    // وشاج ينزل تحت الخانة لو فيه مكان، وإلا فوقها
     const below = r.bottom + 190 < innerHeight;
     const gy = below ? Math.min(innerHeight - 180, r.bottom + 14) : Math.max(10, r.top - 176);
     const gx = Math.max(10, Math.min(innerWidth - Math.min(340, innerWidth - 20) - 10, r.left + r.width / 2 - 170));
@@ -216,7 +274,7 @@ function nextTourStep() {
 function closeTour() { if (tour) { tour.layer.remove(); tour = null; } }
 function maybeAutoTour() {
   if (!profile || tour || db.get('tourDone:' + tourKey(), false) || !TOURS[tourKey()]) return;
-  if (currentRoute() !== 'home') return; // التلقائية في الرئيسية بس، وباقي الصفحات من قائمة سند
+  if (currentRoute() !== 'home') return; // التلقائية في الرئيسية بس، وباقي الصفحات من قائمة وشاج
   setTimeout(() => { if (!tour && !$('[data-sheet]:not([hidden])')) startTour(); }, 900);
 }
 document.addEventListener('keydown', (e) => {
@@ -289,16 +347,16 @@ function pageProfile() {
     </section>`;
 }
 
-/* ---------- أحداث البروفايل وسند ---------- */
+/* ---------- أحداث البروفايل ووشاج ---------- */
 document.addEventListener('click', (e) => {
   const t = e.target;
-  if (t.closest('[data-sanad-open]')) { openSanadMenu(); return; }
-  if (t.closest('[data-sanad-hide]')) { db.set('sanadHidden', true); renderSanadDock(); toast('تقدر ترجّعني من «المزيد» 👋'); return; }
-  if (t.closest('[data-sanad-show]')) { db.set('sanadHidden', false); renderSanadDock(); toast('رجعت 👋'); return; }
+  if (t.closest('[data-wishaj-open]')) { openWishajMenu(); return; }
+  if (t.closest('[data-wishaj-hide]')) { db.set('wishajHidden', true); renderWishajDock(); toast('تقدر ترجّعني من «المزيد» 👋'); return; }
+  if (t.closest('[data-wishaj-show]')) { db.set('wishajHidden', false); renderWishajDock(); toast('رجعت 👋'); return; }
   if (t.closest('[data-tour-start]')) { startTour(); return; }
   if (t.closest('[data-tour-next]')) { nextTourStep(); return; }
   if (t.closest('[data-tour-skip]')) { closeTour(); return; }
-  if (!t.closest('[data-sanad]')) { const m = $('[data-sanad-menu]'); if (m && !m.hidden) m.hidden = true; }
+  if (!t.closest('[data-wishaj]')) { const m = $('[data-wishaj-menu]'); if (m && !m.hidden) m.hidden = true; }
   if (role() !== 'student') return;
   if (t.closest('[data-pf-save]')) { const p = sp(); p.bio = $('#pf-bio').value.trim(); p.visible = $('#pf-visible').checked; saveSp(p); toast('انحفظ بروفايلك ✓'); return; }
   const ai = t.closest('[data-pf-add-int]');
