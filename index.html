@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>وشيجة — الرئيسية</title>
+  <meta name="description" content="وشيجة: منصة مدرسية واحدة تجمع كل شيء لطلاب الثانوي" />
+  <meta name="theme-color" content="#D5604F" />
+  <link rel="icon" href="assets/icon-512.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ===== الشريط الجانبي (للشاشات الكبيرة) ===== -->
+    <aside class="sidebar" aria-label="القائمة الرئيسية">
+      <a class="sidebar__brand" href="#home" aria-label="وشيجة">
+        <img src="assets/icon-512.png" alt="" />
+        <span>وشيجة</span>
+      </a>
+      <nav class="sidebar__nav" data-nav></nav>
+      <div class="sidebar__private">
+        <span class="eyebrow">خاص</span>
+        <strong>بياناتك تظهر لك فقط</strong>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ===== الترويسة ===== -->
+      <header class="hero">
+        <div class="hero__text">
+          <h1><span data-greeting>صباح الخير</span>، عبدالله</h1>
+          <p><span data-today>الأحد</span> • ثاني ثانوي</p>
+        </div>
+        <img class="hero__logo" src="assets/logo-white.png" alt="وشيجة" />
+        <div class="hero__actions">
+          <button class="icon-btn" type="button" aria-label="الإشعارات" data-soon="الإشعارات">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span class="dot"></span>
+          </button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- ===== الخطة المستقبلية (AI) ===== -->
+        <section class="plan-card" aria-labelledby="plan-title">
+          <div class="plan-card__body">
+            <span class="chip chip--light">✦ بالذكاء الاصطناعي</span>
+            <h2 id="plan-title">خطتي المستقبلية</h2>
+            <p>هدفك: <strong>هندسة البرمجيات</strong> • نسبة موزونة 90٪</p>
+            <div class="progress" role="progressbar" aria-valuenow="34" aria-valuemin="0" aria-valuemax="100" aria-label="التقدم نحو الهدف">
+              <span style="width:34%"></span>
+            </div>
+            <div class="plan-card__meta">
+              <span>أنجزت ٣٤٪ من خطتك</span>
+              <span>باقي ٢١٤ يوم</span>
+            </div>
+          </div>
+          <a class="btn btn--white" href="#plan" data-soon="خطتي المستقبلية">افتح خطتي</a>
+        </section>
+
+        <!-- ===== اليوم ===== -->
+        <section class="block" aria-labelledby="today-title">
+          <div class="block__head">
+            <h2 id="today-title">اليوم</h2>
+            <span class="count">٣ مهام</span>
+          </div>
+          <ul class="tasks">
+            <li class="task task--coral">
+              <div><strong>رياضيات — تمارين الوحدة ٣</strong><small>التسليم اليوم، ١١:٥٩ م</small></div>
+              <span class="tag tag--coral">واجب</span>
+            </li>
+            <li class="task task--maroon">
+              <div><strong>اختبار فيزياء قصير</strong><small>الثلاثاء • الحصة الثالثة</small></div>
+              <span class="tag tag--maroon">اختبار</span>
+            </li>
+            <li class="task task--coral">
+              <div><strong>تقرير مختبر الكيمياء</strong><small>التسليم الخميس</small></div>
+              <span class="tag tag--coral">واجب</span>
+            </li>
+          </ul>
+        </section>
+
+        <!-- ===== الخانات الرئيسية ===== -->
+        <section class="block" aria-labelledby="modules-title">
+          <div class="block__head">
+            <h2 id="modules-title">كل شيء في مكان واحد</h2>
+          </div>
+          <div class="modules" data-modules></div>
+        </section>
+
+        <div class="split">
+          <!-- ===== مؤقت التركيز ===== -->
+          <section class="focus" aria-labelledby="focus-title">
+            <div class="block__head">
+              <h2 id="focus-title">ركّز</h2>
+              <span class="count">🔥 ٥ أيام متتالية</span>
+            </div>
+            <div class="focus__row">
+              <div class="focus__ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle cx="60" cy="60" r="52" class="ring-bg" />
+                  <circle cx="60" cy="60" r="52" class="ring-fg" data-ring />
+                </svg>
+                <div class="focus__time">
+                  <strong data-timer>25:00</strong>
+                  <small data-timer-label>جلسة مذاكرة</small>
+                </div>
+              </div>
+              <div class="focus__side">
+                <p>ازرع نبتتك وذاكر بدون مشتتات. كل جلسة تكمّلها تكسبك نقاط.</p>
+                <div class="focus__plants" aria-label="نباتات اليوم">🌱🌿🌳</div>
+                <div class="focus__btns">
+                  <button class="btn btn--coral" type="button" data-timer-toggle>ابدأ</button>
+                  <button class="btn btn--ghost" type="button" data-timer-reset>إعادة</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== المنافسة ===== -->
+          <section class="board" aria-labelledby="board-title">
+            <div class="block__head">
+              <h2 id="board-title">المنافسة الأسبوعية</h2>
+              <a class="link" href="#compete" data-soon="المنافسة">الكل</a>
+            </div>
+            <ol class="leaders">
+              <li><span class="rank">١</span><span class="avatar">س</span><span class="name">سارة</span><span class="pts">٧ س ٢٠ د</span></li>
+              <li class="me"><span class="rank">٢</span><span class="avatar">ع</span><span class="name">أنت</span><span class="pts">٦ س ٤٥ د</span></li>
+              <li><span class="rank">٣</span><span class="avatar">ف</span><span class="name">فيصل</span><span class="pts">٥ س ١٠ د</span></li>
+            </ol>
+          </section>
+        </div>
+
+        <!-- ===== أخبار المدرسة ===== -->
+        <section class="block" aria-labelledby="news-title">
+          <div class="block__head">
+            <h2 id="news-title">أخبار المدرسة</h2>
+          </div>
+          <div class="news">
+            <div>
+              <h3>مسابقة العلوم</h3>
+              <p>التسجيل مفتوح حتى ١٥ أكتوبر</p>
+            </div>
+            <button class="btn btn--white btn--sm" type="button" data-soon="التسجيل في المسابقة">سجّل</button>
+          </div>
+        </section>
+
+        <!-- ===== هذا الأسبوع ===== -->
+        <section class="block" aria-labelledby="week-title">
+          <div class="block__head">
+            <h2 id="week-title">هذا الأسبوع</h2>
+          </div>
+          <div class="stats">
+            <div class="stat"><small>الواجبات المنجزة</small><strong>٧ / ٩</strong></div>
+            <div class="stat"><small>اختبارات قادمة</small><strong>٢</strong></div>
+            <div class="stat"><small>ساعات التركيز</small><strong>٦٫٧</strong></div>
+            <div class="stat"><small>مستواي العام</small><strong>٧٨٪</strong></div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ===== الشريط السفلي (للجوال) ===== -->
+    <nav class="tabbar" aria-label="التنقل" data-tabbar></nav>
+  </div>
+
+  <div class="toast" role="status" aria-live="polite" data-toast></div>
+  <script src="app.js"></script>
+</body>
+</html>
