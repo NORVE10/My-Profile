@@ -1,7 +1,0 @@
-{
-  "buildCommand": "",
-  "outputDirectory": ".",
-  "functions": {
-    "api/ai.js": { "maxDuration": 300 }
-  }
-}

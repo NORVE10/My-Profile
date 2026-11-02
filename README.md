@@ -31,4 +31,4 @@
    - `AI_LIMIT_PER_10_MIN` عشان تحدد كم طلب يقدر يسويه الجهاز الواحد كل ١٠ دقايق (الافتراضي ٣٠).
 
 ## للمطوّرين
-الكود في `src/` (`index.html` و`styles.css` و`app.js` و`more.js`). بعد أي تعديل شغّل `python3 build.py`، وهو يبني `index.html` كملف واحد.
+الكود في `src/` (`index.html` و`styles.css` و`app.js` و`more.js`). بعد أي تعديل شغّل `python3 build.py` (أو `npm run bundle`)، وهو يبني `index.html` كملف واحد.
